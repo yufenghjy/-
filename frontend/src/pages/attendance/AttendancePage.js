@@ -114,26 +114,19 @@ const AttendancePage = () => {
 
   // 结束签到会话
   const handleEndSession = async (session) => {
-    Modal.confirm({
-      title: '确认结束签到',
-      content: `确定要结束 "${session.sessionCode}" 这个签到会话吗？结束后学生将无法再签到。`,
-      okText: '确认',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          const response = await CheckinService.endCheckinSession(session.id);
-          message.success(response.message || '签到会话已结束');
-          fetchSessions(); // 刷新会话列表
-          
-          // 如果正在查看详情的会话被结束，更新详情状态
-          if (selectedSession && selectedSession.id === session.id) {
-            setSelectedSession({ ...selectedSession, status: 'ended' });
-          }
-        } catch (error) {
-          message.error(error.message || '结束签到会话失败');
-        }
+    console.log('handleEndSession called with session:', session);
+    try {
+      const response = await CheckinService.manualEndCheckinSession(session.id);
+      message.success(response.message || '签到会话已手动结束');
+      fetchSessions(); // 刷新会话列表
+      
+      // 如果正在查看详情的会话被结束，更新详情状态
+      if (selectedSession && selectedSession.id === session.id) {
+        setSelectedSession({ ...selectedSession, status: 'ended' });
       }
-    });
+    } catch (error) {
+      message.error(error.message || '手动结束签到会话失败');
+    }
   };
 
   // 会话状态标签
@@ -197,7 +190,7 @@ const AttendancePage = () => {
               onClick={() => handleEndSession(record)}
               size="small"
             >
-              结束
+              结束签到
             </Button>
           )}
         </Space>
@@ -276,7 +269,7 @@ const AttendancePage = () => {
           startForm.resetFields();
         }}
         onOk={() => startForm.submit()}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={startForm}
@@ -314,7 +307,7 @@ const AttendancePage = () => {
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedSession && (
           <div>
@@ -344,7 +337,7 @@ const AttendancePage = () => {
                       icon={<StopOutlined />} 
                       onClick={() => handleEndSession(selectedSession)}
                     >
-                      立即结束签到
+                      手动结束签到
                     </Button>
                   </Col>
                 </Row>

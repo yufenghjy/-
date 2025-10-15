@@ -174,3 +174,38 @@ func EndCheckinSession(c *gin.Context) {
 
 	response.Success(c, gin.H{"message": "签到会话已结束"})
 }
+
+// ManualEndCheckinSession 手动结束签到会话
+func ManualEndCheckinSession(c *gin.Context) {
+	sessionIDStr := c.Param("session_id")
+	sessionID, err := strconv.ParseUint(sessionIDStr, 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "无效的会话ID")
+		return
+	}
+
+	teacherIDFloat, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+	
+	var teacherID uint
+	switch v := teacherIDFloat.(type) {
+	case float64:
+		teacherID = uint(v)
+	case uint:
+		teacherID = v
+	default:
+		response.Error(c, http.StatusInternalServerError, "无效的用户ID类型")
+		return
+	}
+
+	err = services.ManualEndCheckinSession(uint(sessionID), teacherID)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{"message": "签到会话已手动结束"})
+}

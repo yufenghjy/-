@@ -142,6 +142,34 @@ func EndCheckinSession(sessionID uint) error {
 	return nil
 }
 
+// ManualEndCheckinSession 手动结束签到会话（教师强制结束）
+func ManualEndCheckinSession(sessionID uint, teacherID uint) error {
+	var session models.CheckinSession
+	
+	// 查找会话并验证教师权限
+	if err := database.DB.Where("id = ? AND teacher_id = ?", sessionID, teacherID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("签到会话不存在或您无权限操作此会话")
+		}
+		return errors.New("查询签到会话失败: " + err.Error())
+	}
+	
+	// 检查会话状态
+	if session.Status == "ended" {
+		return errors.New("签到会话已结束")
+	}
+	
+	// 更新会话状态为已结束
+	if err := database.DB.Model(&session).Updates(map[string]interface{}{
+		"status": "ended",
+		"duration": int(time.Since(session.StartTime).Minutes()), // 更新实际持续时间
+	}).Error; err != nil {
+		return errors.New("手动结束签到会话失败: " + err.Error())
+	}
+	
+	return nil
+}
+
 // isUniqueConstraintError 判断是否为 MySQL 唯一约束错误
 func isUniqueConstraintError(err error) bool {
 	if err != nil {

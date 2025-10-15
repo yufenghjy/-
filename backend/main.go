@@ -80,6 +80,7 @@ func main() {
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
 			protected.GET("/checkin-sessions", handlers.GetCheckinSessions)
 			protected.PUT("/end-checkin/:session_id", handlers.EndCheckinSession)
+			protected.PUT("/manual-end-checkin/:session_id", handlers.ManualEndCheckinSession)
 		}
 	}
 

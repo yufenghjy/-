@@ -83,6 +83,20 @@ class CheckinService {
       throw new Error(error.response?.data?.msg || '结束签到会话失败');
     }
   }
+  
+  /**
+   * 手动结束签到会话
+   * @param {number} sessionId - 签到会话ID
+   * @returns {Promise} 操作结果
+   */
+  static async manualEndCheckinSession(sessionId) {
+    try {
+      const response = await apiClient.put(`/manual-end-checkin/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '手动结束签到会话失败');
+    }
+  }
 }
 
 export default CheckinService;
