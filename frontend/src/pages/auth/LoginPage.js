@@ -12,12 +12,14 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const response = await AuthService.login(values);
-      AuthService.login(response.user);
+      // 保存用户信息和token
+      localStorage.setItem('authUser', JSON.stringify(response));
+      localStorage.setItem('authToken', response.data.token);
       message.success('登录成功');
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      message.error('登录失败，请检查用户名和密码');
+      message.error(error.message || '登录失败，请检查用户名和密码');
     } finally {
       setLoading(false);
     }

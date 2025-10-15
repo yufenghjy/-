@@ -7,21 +7,12 @@ class AuthService {
    * @returns {Promise} 登录结果
    */
   static async login(credentials) {
-    // 在真实应用中，这里会调用 apiClient.post('/login', credentials)
-    // 由于是mock，我们返回一个模拟的Promise
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          user: {
-            id: 1,
-            username: credentials.username,
-            name: credentials.username === 'admin' ? 'Admin User' : 'Teacher User',
-            role: credentials.username === 'admin' ? 'admin' : 'teacher',
-            token: 'mock-jwt-token'
-          }
-        });
-      }, 1000);
-    });
+    try {
+      const response = await apiClient.post('/login', credentials);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '登录失败');
+    }
   }
 
   /**
@@ -29,6 +20,7 @@ class AuthService {
    */
   static logout() {
     localStorage.removeItem('authUser');
+    localStorage.removeItem('authToken');
   }
 
   /**
@@ -55,7 +47,7 @@ class AuthService {
    */
   static hasRole(role) {
     const user = this.getCurrentUser();
-    return user && user.role === role;
+    return user && user.data && user.data.user && user.data.user.role === role;
   }
 }
 

@@ -10,15 +10,15 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
-    const user = localStorage.getItem('authUser');
-    if (user) {
-      const userData = JSON.parse(user);
-      config.headers.Authorization = `Bearer ${userData.token}`;
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -36,6 +36,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // 未授权，清除用户信息并跳转到登录页
       localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken');
       window.location.href = '/login';
     }
     return Promise.reject(error);
