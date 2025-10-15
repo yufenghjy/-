@@ -43,11 +43,11 @@ func main() {
 			"http://localhost:5500": true,
 			"http://127.0.0.1:3000": true,
 		}
-		
+
 		if allowedOrigins[origin] {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		}
-		
+
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -75,7 +75,11 @@ func main() {
 		{
 			protected.POST("/start-checkin", handlers.StartCheckin)
 			protected.GET("/courses", handlers.GetMyCourses)
+			protected.GET("/courses/:id", handlers.GetCourseByID)
+			protected.POST("courses/add", handlers.CreateCourse)
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
+			protected.GET("/checkin-sessions", handlers.GetCheckinSessions)
+			protected.PUT("/end-checkin/:session_id", handlers.EndCheckinSession)
 		}
 	}
 

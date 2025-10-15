@@ -66,3 +66,42 @@ func GetMyCourses(c *gin.Context) {
 
 	response.Success(c, courses)
 }
+
+// CreateCourse 创建课程
+func CreateCourse(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "用户未登录")
+		return
+	}
+
+	var req struct {
+		CourseCode string `json:"course_code" binding:"required"`
+		Name       string `json:"name" binding:"required"`
+		Credit     int    `json:"credit" binding:"required,min=1"`
+		Semester   string `json:"semester" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "参数错误: "+err.Error())
+		return
+	}
+
+	// 创建课程对象
+	course := model.Course{
+		CourseCode: req.CourseCode,
+		Name:       req.Name,
+		TeacherID:  userID.(uint),
+		Credit:     req.Credit,
+		Semester:   req.Semester,
+	}
+
+	// 保存到数据库
+	result := database.DB.Create(&course)
+	if result.Error != nil {
+		response.Error(c, http.StatusInternalServerError, "创建课程失败: "+result.Error.Error())
+		return
+	}
+
+	response.Success(c, course)
+}

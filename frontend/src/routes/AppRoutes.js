@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../pages/auth/LoginPage';
 import MainLayout from '../components/layout/MainLayout';
 import AuthService from '../services/authService';
+import AttendancePage from '../pages/attendance/AttendancePage';
 
 // 简单的路由保护组件
 const ProtectedRoute = ({ children }) => {
@@ -18,7 +19,6 @@ const AuthRoute = ({ children }) => {
 const DashboardPage = () => <div>仪表盘页面</div>;
 const UsersPage = () => <div>用户管理页面</div>;
 const CoursesPage = () => <div>课程管理页面</div>;
-const AttendancePage = () => <div>考勤管理页面</div>;
 
 const AppRoutes = () => {
   return (

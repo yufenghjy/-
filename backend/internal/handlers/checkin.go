@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"backend/internal/services"
+	"backend/pkg/database"
 	"backend/pkg/response"
 	"encoding/base64"
 	"log"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/skip2/go-qrcode"
+	models "backend/internal/model"
 )
 
 // StartCheckin 教师发起签到
@@ -127,4 +129,48 @@ func GetCheckinRecords(c *gin.Context) {
 	}
 
 	response.Success(c, records)
+}
+
+// GetCheckinSessions 获取所有签到会话列表
+func GetCheckinSessions(c *gin.Context) {
+	var sessions []models.CheckinSession
+	result := database.DB.Find(&sessions)
+	if result.Error != nil {
+		response.Error(c, http.StatusInternalServerError, "获取签到会话列表失败")
+		return
+	}
+	
+	// 转换为前端需要的格式
+	sessionList := make([]gin.H, 0)
+	for _, session := range sessions {
+		sessionList = append(sessionList, gin.H{
+			"id":          session.ID,
+			"sessionCode": session.SessionCode,
+			"courseName":  session.Course.Name,
+			"teacher":     session.Teacher.Name,
+			"startTime":   session.StartTime.Format("2006-01-02 15:04:05"),
+			"duration":    session.Duration,
+			"status":      session.Status,
+		})
+	}
+	
+	response.Success(c, sessionList)
+}
+
+// EndCheckinSession 结束签到会话
+func EndCheckinSession(c *gin.Context) {
+	sessionIDStr := c.Param("session_id")
+	sessionID, err := strconv.ParseUint(sessionIDStr, 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "无效的会话ID")
+		return
+	}
+
+	err = services.EndCheckinSession(uint(sessionID))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{"message": "签到会话已结束"})
 }

@@ -117,6 +117,31 @@ func GetCheckinRecordsBySession(sessionID uint) ([]gin.H, error) {
 	return result, nil
 }
 
+// EndCheckinSession 结束签到会话
+func EndCheckinSession(sessionID uint) error {
+	var session models.CheckinSession
+	
+	// 查找会话
+	if err := database.DB.Where("id = ?", sessionID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("签到会话不存在")
+		}
+		return errors.New("查询签到会话失败: " + err.Error())
+	}
+	
+	// 检查会话状态
+	if session.Status == "ended" {
+		return errors.New("签到会话已结束")
+	}
+	
+	// 更新会话状态为已结束
+	if err := database.DB.Model(&session).Update("status", "ended").Error; err != nil {
+		return errors.New("结束签到会话失败: " + err.Error())
+	}
+	
+	return nil
+}
+
 // isUniqueConstraintError 判断是否为 MySQL 唯一约束错误
 func isUniqueConstraintError(err error) bool {
 	if err != nil {

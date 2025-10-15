@@ -56,6 +56,33 @@ class CheckinService {
       throw new Error(error.response?.data?.msg || '获取会话信息失败');
     }
   }
+  
+  /**
+   * 获取签到会话列表
+   * @returns {Promise} 签到会话列表
+   */
+  static async getCheckinSessions() {
+    try {
+      const response = await apiClient.get('/checkin-sessions');
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '获取签到会话列表失败');
+    }
+  }
+  
+  /**
+   * 结束签到会话
+   * @param {number} sessionId - 签到会话ID
+   * @returns {Promise} 操作结果
+   */
+  static async endCheckinSession(sessionId) {
+    try {
+      const response = await apiClient.put(`/end-checkin/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '结束签到会话失败');
+    }
+  }
 }
 
 export default CheckinService;
