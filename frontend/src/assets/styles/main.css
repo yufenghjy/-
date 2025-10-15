@@ -1,0 +1,30 @@
+/* 全局样式定义 */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #001529;
+  padding: 0 24px;
+}
+
+.site-layout-background {
+  background: #fff;
+}
+
+/* 登录页面样式 */
+.login-form {
+  max-width: 300px;
+}
+
+.login-form-forgot {
+  float: right;
+}
+
+.ant-col-rtl .login-form-forgot {
+  float: left;
+}
+
+.login-form-button {
+  width: 100%;
+}
