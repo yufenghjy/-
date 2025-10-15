@@ -34,6 +34,21 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
+	// 跨域配置
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5500")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
 	// 静态文件服务：H5签到页面
 	r.StaticFile("/checkin", "./static/checkin.html")
 
@@ -42,14 +57,15 @@ func main() {
 	{
 		// 公共路由（无需登录）
 		api.POST("/login", handlers.Login)
-
+		api.GET("/session/:code", handlers.GetSessionInfo)
+		api.POST("/checkin", handlers.StudentCheckin)
 		// 受保护路由（需JWT认证）
 		protected := api.Use(middleware.JWTAuth())
 		{
 			protected.POST("/start-checkin", handlers.StartCheckin)
-			protected.POST("/checkin", handlers.StudentCheckin)
+			// protected.POST("/checkin", handlers.StudentCheckin)
 			//protected.GET("/courses", handlers.GetMyCourses)
-			protected.GET("/session/:code", handlers.GetSessionInfo)
+			// protected.GET("/session/:code", handlers.GetSessionInfo)
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
 		}
 	}

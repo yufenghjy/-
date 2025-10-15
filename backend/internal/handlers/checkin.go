@@ -4,6 +4,7 @@ import (
 	"backend/internal/services"
 	"backend/pkg/response"
 	"encoding/base64"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -28,7 +29,16 @@ func StartCheckin(c *gin.Context) {
 		response.Error(c, http.StatusUnauthorized, "未授权")
 		return
 	}
-	teacherID := uint(teacherIDFloat.(float64))
+	var teacherID uint
+	switch v := teacherIDFloat.(type) {
+	case float64:
+		teacherID = uint(v)
+	case uint:
+		teacherID = v
+	default:
+		response.Error(c, http.StatusInternalServerError, "无效的用户ID类型")
+		return
+	}
 
 	sessionCode, err := services.CreateCheckinSession(teacherID, req.CourseID, req.Duration)
 	if err != nil {
@@ -36,7 +46,7 @@ func StartCheckin(c *gin.Context) {
 		return
 	}
 
-	checkinURL := "http://localhost:8080/checkin?session=" + sessionCode
+	checkinURL := "localhost:5500/backend/static/index.html?session=" + sessionCode
 	// 生成二维码
 	qrCode, err := qrcode.New(checkinURL, qrcode.Medium)
 	if err != nil {
@@ -65,7 +75,8 @@ func StudentCheckin(c *gin.Context) {
 		StudentID   uint   `form:"student_id" json:"student_id" binding:"required"`
 	}
 
-	if err := c.ShouldBind(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("绑定失败: %v", err)
 		response.Error(c, http.StatusBadRequest, "学号或会话码缺失")
 		return
 	}
@@ -77,7 +88,10 @@ func StudentCheckin(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"msg": "签到成功！"})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"msg":     "签到成功",
+	})
 }
 
 // GetSessionInfo 获取会话信息（供H5页面显示）

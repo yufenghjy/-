@@ -59,9 +59,11 @@
     <!-- Bootstrap 5 JS (可选，如果需要 JS 组件) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
+        const currentUrl = window.location.href;
+        const url = new URL(currentUrl);
+        const urlParams = new URLSearchParams(url.search);
         const sessionCode = urlParams.get('session');
-        
+        console.log('session 参数值：', sessionCode);
         if (!sessionCode) {
             document.getElementById('loading').innerHTML = '<div class="alert alert-danger">无效的签到链接！</div>';
             document.getElementById('loading').classList.remove('d-none');
@@ -69,7 +71,7 @@
         }
 
         // 获取课程信息
-        fetch(`/api/session/${sessionCode}`)
+        fetch(`http://localhost:8080/api/session/${sessionCode}`)
             .then(response => response.json())
             .then(data => {
                 if(data.success) {
@@ -104,7 +106,7 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 提交中...';
 
             try {
-                const response = await fetch('/api/checkin', {
+                const response = await fetch('http://localhost:8080/api/checkin', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

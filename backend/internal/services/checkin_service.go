@@ -58,10 +58,12 @@ func ProcessStudentCheckin(sessionCode string, studentID uint) error {
 
 	// 准备签到记录
 	record := models.CheckinRecord{
-		SessionID: session.ID,
-		StudentID: studentID,
-		CourseID:  session.CourseID,
-		Status:    "present", // 默认为出勤
+		SessionID:            session.ID,
+		StudentID:            studentID,
+		CourseID:             session.CourseID,
+		CheckinTime:          time.Now(), // 添加这一行来设置正确的签到时间
+		Status:               "present",  // 默认为出勤
+		UniqueSessionStudent: fmt.Sprintf("%d-%d", session.ID, studentID),
 	}
 
 	// 使用事务确保原子性
@@ -91,7 +93,7 @@ func GetSessionDisplayInfo(sessionCode string) (courseName, teacherName string, 
 		return "", "", time.Time{}, errors.New("会话已结束")
 	}
 
-	return "session.Course.Name", "session.Teacher.Name", session.StartTime, nil
+	return session.Course.Name, session.Teacher.Name, session.StartTime, nil
 }
 
 // GetCheckinRecordsBySession 获取某次签到的记录
