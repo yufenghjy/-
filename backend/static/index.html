@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂签到</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-checkin {
+            transition: all 0.3s;
+        }
+        .status-message {
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="card mx-auto shadow" style="max-width: 400px;">
+            <div class="card-body p-4">
+                <h4 class="card-title text-center mb-4">课堂签到</h4>
+                
+                <div id="loading" class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2">正在加载课程信息...</p>
+                </div>
+
+                <div id="content" class="d-none">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">课程信息</label>
+                        <p id="courseInfo" class="mb-1">-</p>
+                        <p id="startTime" class="text-muted small">-</p>
+                    </div>
+
+                    <form id="checkinForm">
+                        <div class="mb-3">
+                            <label for="studentId" class="form-label">请输入学号</label>
+                            <input type="text" class="form-control" id="studentId" placeholder="如：20231101" required>
+                        </div>
+                        <button type="submit" id="checkinBtn" class="btn btn-primary w-100 btn-checkin">确认签到</button>
+                    </form>
+
+                    <div id="statusMessage" class="mt-3 text-center status-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS (可选，如果需要 JS 组件) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionCode = urlParams.get('session');
+        
+        if (!sessionCode) {
+            document.getElementById('loading').innerHTML = '<div class="alert alert-danger">无效的签到链接！</div>';
+            document.getElementById('loading').classList.remove('d-none');
+            throw new Error('No session code in URL');
+        }
+
+        // 获取课程信息
+        fetch(`/api/session/${sessionCode}`)
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('courseInfo').textContent = `${data.data.course_name}`;
+                    document.getElementById('startTime').textContent = `开始时间: ${data.data.start_time}`;
+                    document.getElementById('loading').classList.add('d-none');
+                    document.getElementById('content').classList.remove('d-none');
+                } else {
+                    document.getElementById('loading').innerHTML = `<div class="alert alert-danger">${data.msg}</div>`;
+                    document.getElementById('loading').classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('获取课程信息失败:', error);
+                document.getElementById('loading').innerHTML = '<div class="alert alert-danger">网络错误，无法加载信息</div>';
+                document.getElementById('loading').classList.remove('d-none');
+            });
+
+        // 提交签到
+        document.getElementById('checkinForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const studentId = document.getElementById('studentId').value.trim();
+            const btn = document.getElementById('checkinBtn');
+            const statusDiv = document.getElementById('statusMessage');
+
+            if (!studentId) {
+                statusDiv.innerHTML = '<div class="alert alert-warning">请输入学号</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 提交中...';
+
+            try {
+                const response = await fetch('/api/checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_code: sessionCode,
+                        student_id: parseInt(studentId, 10) // 确保是数字
+                    })
+                });
+
+                const result = await response.json();
+
+                let alertClass = result.success ? 'alert-success' : 'alert-danger';
+                statusDiv.innerHTML = `<div class="alert ${alertClass}">${result.msg}</div>`;
+                
+                if(result.success) {
+                    // 签到成功后禁用表单
+                    document.getElementById('checkinForm').style.pointerEvents = 'none';
+                }
+
+            } catch (error) {
+                console.error('提交失败:', error);
+                statusDiv.innerHTML = '<div class="alert alert-danger">网络错误，请重试</div>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '确认签到';
+            }
+        });
+    </script>
+</body>
+</html>
