@@ -107,8 +107,8 @@ func GetCheckinRecordsBySession(sessionID uint) ([]gin.H, error) {
 
 	for _, r := range records {
 		result = append(result, gin.H{
-			"student_id": r.StudentID,
-			// "student_name": r.Student.Name, // 假设预加载了 Student
+			"student_id":   r.StudentID,
+			"student_name": r.Student.Name,
 			"checkin_time": r.CheckinTime.Format("2006-01-02 15:04:05"),
 			"status":       r.Status,
 		})
