@@ -63,9 +63,7 @@ func main() {
 		protected := api.Use(middleware.JWTAuth())
 		{
 			protected.POST("/start-checkin", handlers.StartCheckin)
-			// protected.POST("/checkin", handlers.StudentCheckin)
-			//protected.GET("/courses", handlers.GetMyCourses)
-			// protected.GET("/session/:code", handlers.GetSessionInfo)
+			protected.GET("/courses", handlers.GetMyCourses)
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
 		}
 	}
