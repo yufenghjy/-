@@ -11,6 +11,7 @@ type Course struct {
 	CourseCode string `gorm:"uniqueIndex;not null;type:varchar(191)"` // 课程编号
 	Name       string `gorm:"not null"`             // 课程名称
 	TeacherID  uint   `gorm:"not null"`             // 教师ID
+	Teacher    User   `gorm:"foreignKey:TeacherID"` // 关联教师
 	Credit     int    `gorm:"default:0"`            // 学分
 	Semester   string `gorm:"default:null"`         // 学期
 	CreatedAt  time.Time

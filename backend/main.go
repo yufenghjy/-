@@ -70,15 +70,19 @@ func main() {
 		api.POST("/login", handlers.Login)
 		api.GET("/session/:code", handlers.GetSessionInfo)
 		api.POST("/checkin", handlers.StudentCheckin)
+		api.GET("/teachers", handlers.GetTeachers) // 将获取教师列表移到公共路由
 
 		// 受保护路由（需JWT认证）
 		protected := api.Use(middleware.JWTAuth())
 		{
 			// 签到相关接口
 			protected.POST("/start-checkin", handlers.StartCheckin)
-			protected.GET("/courses", handlers.GetMyCourses)
+			protected.GET("/courses", handlers.GetMyCourses)         // 获取当前教师的课程
+			protected.GET("/courses/all", handlers.GetCourses)       // 获取所有课程
 			protected.GET("/courses/:id", handlers.GetCourseByID)
 			protected.POST("/courses/add", handlers.CreateCourse)
+			protected.PUT("/courses/:id", handlers.UpdateCourse) // 添加更新课程路由
+			protected.DELETE("/courses/:id", handlers.DeleteCourse) // 添加删除课程路由
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
 			protected.GET("/checkin-sessions", handlers.GetCheckinSessions)
 			protected.PUT("/end-checkin/:session_id", handlers.EndCheckinSession)

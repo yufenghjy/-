@@ -27,6 +27,22 @@ func GetUsers(c *gin.Context) {
 	response.Success(c, users)
 }
 
+// 获取所有教师
+func GetTeachers(c *gin.Context) {
+	teachers, err := userService.GetTeachers()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "获取教师列表失败")
+		return
+	}
+
+	// 清除密码哈希值，不返回给前端
+	for i := range teachers {
+		teachers[i].PasswordHash = ""
+	}
+
+	response.Success(c, teachers)
+}
+
 // 创建用户
 func CreateUser(c *gin.Context) {
 	var req struct {
@@ -53,7 +69,7 @@ func CreateUser(c *gin.Context) {
 
 // 更新用户
 func UpdateUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, "无效的用户ID")
 		return
@@ -61,7 +77,7 @@ func UpdateUser(c *gin.Context) {
 
 	var req struct {
 		Name  string `json:"name" binding:"required"`
-		Role  string `json:"role" binding:"required,oneof=admin teacher student ADMIN TEACHER STUDENT"`
+		Role  string `json:"role" binding:"required,oneof=admin teacher student"`
 		Email string `json:"email" binding:"required,email"`
 	}
 
@@ -81,21 +97,13 @@ func UpdateUser(c *gin.Context) {
 
 // 删除用户
 func DeleteUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, "无效的用户ID")
 		return
 	}
 
-	// 检查是否试图删除自己
-	currentUserID := c.GetUint("user_id")
-	if currentUserID == uint(id) {
-		response.Error(c, http.StatusBadRequest, "不能删除当前登录用户")
-		return
-	}
-
-	err = userService.DeleteUser(uint(id))
-	if err != nil {
+	if err := userService.DeleteUser(uint(id)); err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}

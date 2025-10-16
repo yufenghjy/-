@@ -9,40 +9,70 @@ import {
   Input, 
   InputNumber, 
   Space,
-  Tag
+  Tag,
+  Select,
+  Popconfirm
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import CourseService from '../../services/courseService';
+import UserService from '../../services/userService';
+
+// 转换课程数据格式，将大驼峰命名转换为小驼峰命名
+const transformCourseData = (course) => {
+  return {
+    id: course.ID || course.id,
+    courseCode: course.CourseCode || course.courseCode,
+    name: course.Name || course.name,
+    teacher: course.Teacher || course.teacher,  // 添加对Teacher字段的处理
+    teacherId: course.TeacherID || course.teacherId,
+    credit: course.Credit || course.credit,
+    semester: course.Semester || course.semester,
+    createdAt: course.CreatedAt || course.createdAt,
+    updatedAt: course.UpdatedAt || course.updatedAt,
+  };
+};
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
+  const [teachers, setTeachers] = useState([]); // 添加教师列表状态
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [form] = Form.useForm();
 
-  // 模拟获取课程列表
+  // 获取课程列表
   const fetchCourses = async () => {
     setLoading(true);
     try {
-      // 实际项目中这里会调用API获取课程列表
-      // const response = await apiClient.get('/courses');
-      // 模拟数据
-      setTimeout(() => {
-        setCourses([
-          { id: 1, courseCode: 'CS101', name: '计算机科学导论', teacher: '王老师', credit: 3, semester: '2023年春季' },
-          { id: 2, courseCode: 'MATH201', name: '高等数学', teacher: '李老师', credit: 4, semester: '2023年春季' },
-          { id: 3, courseCode: 'ENG101', name: '大学英语', teacher: '张老师', credit: 2, semester: '2023年春季' }
-        ]);
-        setLoading(false);
-      }, 500);
-    } catch (error) {
-      message.error('获取课程列表失败');
+      const response = await CourseService.getCourses();
+      // 转换数据格式以匹配前端期望的字段名
+      const transformedCourses = (response.data || []).map(course => transformCourseData(course));
+      setCourses(transformedCourses);
       setLoading(false);
+    } catch (error) {
+      message.error(error.message || '获取课程列表失败');
+      setLoading(false);
+    }
+  };
+
+  // 获取教师列表
+  const fetchTeachers = async () => {
+    try {
+      const response = await UserService.getTeachers();
+      // 转换教师数据格式
+      const transformedTeachers = (response.data || []).map(teacher => ({
+        id: teacher.ID || teacher.id,
+        name: teacher.Name || teacher.name
+      }));
+      setTeachers(transformedTeachers);
+    } catch (error) {
+      message.error(error.message || '获取教师列表失败');
     }
   };
 
   useEffect(() => {
     fetchCourses();
+    fetchTeachers(); // 获取教师列表
   }, []);
 
   const showAddModal = () => {
@@ -53,7 +83,14 @@ const CoursesPage = () => {
 
   const showEditModal = (course) => {
     setEditingCourse(course);
-    form.setFieldsValue(course);
+    // 使用转换后的字段名设置表单值
+    form.setFieldsValue({
+      courseCode: course.courseCode,
+      name: course.name,
+      teacherId: course.teacherId, // 使用teacherId而不是teacher
+      credit: course.credit,
+      semester: course.semester
+    });
     setIsModalVisible(true);
   };
 
@@ -62,28 +99,51 @@ const CoursesPage = () => {
       const values = await form.validateFields();
       if (editingCourse) {
         // 编辑课程
+        // 准备后端期望的数据格式
+        const courseData = {
+          CourseCode: values.courseCode,
+          Name: values.name,
+          TeacherID: values.teacherId, // 允许修改教师
+          Credit: values.credit,
+          Semester: values.semester
+        };
+        
+        await CourseService.updateCourse(editingCourse.id, courseData);
         message.success('课程信息更新成功');
       } else {
         // 添加课程
+        // 准备后端期望的数据格式
+        const courseData = {
+          CourseCode: values.courseCode,
+          Name: values.name,
+          TeacherID: values.teacherId, // 使用TeacherID而不是Teacher
+          Credit: values.credit,
+          Semester: values.semester
+        };
+        
+        await CourseService.createCourse(courseData);
         message.success('课程添加成功');
       }
       setIsModalVisible(false);
       fetchCourses();
     } catch (error) {
-      console.error('操作失败:', error);
+      // 处理课程代码重复的错误
+      if (error.message && error.message.includes('课程代码已存在')) {
+        message.error('课程代码已存在，请使用其他代码');
+      } else {
+        message.error(error.message || '操作失败');
+      }
     }
   };
 
-  const handleDelete = (courseId) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这门课程吗？',
-      onOk: () => {
-        // 实际项目中这里会调用API删除课程
-        message.success('课程删除成功');
-        fetchCourses();
-      }
-    });
+  const handleDelete = async (course) => {
+    try {
+      await CourseService.deleteCourse(course.id);
+      message.success('课程删除成功');
+      fetchCourses();
+    } catch (error) {
+      message.error(error.message || '删除课程失败');
+    }
   };
 
   const columns = [
@@ -101,6 +161,7 @@ const CoursesPage = () => {
       title: '授课教师',
       dataIndex: 'teacher',
       key: 'teacher',
+      render: (text) => text || '未分配'
     },
     {
       title: '学分',
@@ -126,14 +187,20 @@ const CoursesPage = () => {
           >
             编辑
           </Button>
-          <Button 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => handleDelete(record.id)}
-            size="small"
+          <Popconfirm
+            title="确定要删除这门课程吗？"
+            onConfirm={() => handleDelete(record)}
+            okText="确定"
+            cancelText="取消"
           >
-            删除
-          </Button>
+            <Button 
+              danger 
+              icon={<DeleteOutlined />} 
+              size="small"
+            >
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -178,7 +245,7 @@ const CoursesPage = () => {
             label="课程编号"
             rules={[{ required: true, message: '请输入课程编号!' }]}
           >
-            <Input />
+            <Input disabled={!!editingCourse} />
           </Form.Item>
           
           <Form.Item
@@ -190,11 +257,20 @@ const CoursesPage = () => {
           </Form.Item>
           
           <Form.Item
-            name="teacher"
+            name="teacherId"
             label="授课教师"
-            rules={[{ required: true, message: '请输入授课教师!' }]}
+            rules={[{ required: true, message: '请选择授课教师!' }]}
           >
-            <Input />
+            <Select 
+              placeholder="请选择授课教师"
+              disabled={false} // 编辑时允许修改教师
+            >
+              {teachers.map(teacher => (
+                <Select.Option key={teacher.id} value={teacher.id}>
+                  {teacher.name}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
           
           <Form.Item

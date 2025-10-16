@@ -18,6 +18,13 @@ func (s *UserService) GetAllUsers() ([]model.User, error) {
 	return users, err
 }
 
+// 获取所有教师
+func (s *UserService) GetTeachers() ([]model.User, error) {
+	var teachers []model.User
+	err := database.DB.Where("role = ?", "teacher").Find(&teachers).Error
+	return teachers, err
+}
+
 // 根据ID获取用户
 func (s *UserService) GetUserByID(id uint) (*model.User, error) {
 	var user model.User
