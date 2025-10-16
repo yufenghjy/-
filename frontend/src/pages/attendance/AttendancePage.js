@@ -18,7 +18,8 @@ import {
   PlayCircleOutlined, 
   StopOutlined, 
   EyeOutlined, 
-  ReloadOutlined 
+  ReloadOutlined,
+  QrcodeOutlined
 } from '@ant-design/icons';
 import CheckinService from '../../services/checkinService';
 import CourseService from '../../services/courseService';
@@ -121,6 +122,26 @@ const AttendancePage = () => {
     }
   };
 
+  // 显示二维码
+  const showQRCode = (session) => {
+    // 如果已经有二维码数据且对应同一个会话，则直接显示
+    if (qrCodeData && qrCodeData.session_code === session.sessionCode) {
+      setIsQRModalVisible(true);
+      return;
+    }
+    
+    // 否则需要重新获取二维码数据
+    // 这里我们模拟一个二维码数据对象，实际开发中应该调用后端API获取
+    const mockQRCodeData = {
+      session_code: session.sessionCode,
+      checkin_url: `http://localhost:5500/backend/static/index.html?session=${session.sessionCode}`,
+      qr_code: "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAABlBMVEX///8AAABVwtN+AAACAklEQVR42uyYMbLzIAyEl6Gg5AgchZvF9s04CkegpGC8/0g4iTN/qldFHqt5L/hrQGJZCXfcccffYiHJDrClrSOzw40oa7wWAMB1wJM7Ij25jViOD3YAWeqpeHINLfuOB2Ihq0mArA8gD0iyrAIE0tal1ur3bVoHtCZTGbEuXVfct6L9dUD1QYGH1mTavgnIjwMzUkGULHEEKc3/48cBKTnR6oG0TmDRbdaLASNyDZRsAvokLWRx/V2TNgB9kjJZXZcrlTaysL+zaQEAGx6hYsgla/Cs8ofkaglYRiyOr2QNpG0gA4nXAtjyjlT0HFgOAeGpJi0AkrhNvFxL1DQq4M7pNgAsA1n+12RFuVIPr/oAU4BnWVjziNzld+DqW97D++W9BjCgNXl4uTFlEKEulgAcV0rUECoMG0nXX/pgA/DyJamhDirmR0O6mgKgj2oWR6qbVkcKsTxXApZ5j4ocRyD1HJDPLsgEAOStI6ula2BPu2/Yw1vMTQCeRc1AnDOQqeL7xwzEADDNdH6anFCludtDvRbw7PV8S6vUZFcrbg14DQ/FDMWCoGO3s/E2ARwzkKkPRYeHgr8bUhPAeewWxV47KblTd3ApQFR8Gu+j/YZBgL7h2ap69XK2gOfUvcH1KLuF/xi52QDm8JA6CpGSS6s8rCeTcwngjjvu+Ix/AQAA//+WC1dUGCCLdwAAAABJRU5ErkJggg=="
+    };
+    
+    setQrCodeData(mockQRCodeData);
+    setIsQRModalVisible(true);
+  };
+
   // 会话状态标签
   const getStatusTag = (status) => {
     switch (status) {
@@ -167,6 +188,16 @@ const AttendancePage = () => {
       key: 'action',
       render: (_, record) => (
         <Space size="middle">
+          {record.status === 'active' && (
+            <Button 
+              type="primary" 
+              icon={<QrcodeOutlined />} 
+              onClick={() => showQRCode(record)}
+              size="small"
+            >
+              查看二维码
+            </Button>
+          )}
           <Button 
             type="primary" 
             icon={<EyeOutlined />} 
