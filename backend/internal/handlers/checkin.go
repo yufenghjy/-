@@ -134,7 +134,8 @@ func GetCheckinRecords(c *gin.Context) {
 // GetCheckinSessions 获取所有签到会话列表
 func GetCheckinSessions(c *gin.Context) {
 	var sessions []models.CheckinSession
-	result := database.DB.Find(&sessions)
+	// 预加载课程和教师信息
+	result := database.DB.Preload("Course").Preload("Teacher").Find(&sessions)
 	if result.Error != nil {
 		response.Error(c, http.StatusInternalServerError, "获取签到会话列表失败")
 		return

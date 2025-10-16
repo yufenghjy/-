@@ -54,7 +54,27 @@ const AttendancePage = () => {
     setLoading(true);
     try {
       const response = await CheckinService.getCheckinSessions();
-      setSessions(response.data || []);
+      console.log('后端返回的会话数据:', response); // 调试信息，查看实际数据结构
+      
+      // 处理会话数据，确保课程名称正确显示
+      const sessionsWithCourseName = (response.data || []).map(session => {
+        // 打印每个会话对象，查看实际结构
+        console.log('单个会话对象:', session);
+        
+        // 尝试从不同可能的字段中获取课程名称
+        const courseName = session.courseName || 
+                          session.course_name || 
+                          session.Course?.Name ||
+                          session.course?.name ||
+                          '未知课程';
+        
+        return {
+          ...session,
+          courseName: courseName
+        };
+      });
+      
+      setSessions(sessionsWithCourseName);
     } catch (error) {
       message.error(error.message || '获取签到会话失败');
     } finally {
