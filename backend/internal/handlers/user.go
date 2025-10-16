@@ -27,6 +27,22 @@ func GetUsers(c *gin.Context) {
 	response.Success(c, users)
 }
 
+// 获取所有学生
+func GetStudents(c *gin.Context) {
+	students, err := userService.GetStudents()
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "获取学生列表失败")
+		return
+	}
+
+	// 清除密码哈希值，不返回给前端
+	for i := range students {
+		students[i].PasswordHash = ""
+	}
+
+	response.Success(c, students)
+}
+
 // 获取所有教师
 func GetTeachers(c *gin.Context) {
 	teachers, err := userService.GetTeachers()

@@ -50,8 +50,10 @@ const UsersPage = () => {
     setLoading(true);
     try {
       const response = await UserService.getUsers();
-      // 转换数据格式以匹配前端期望的字段名
-      const transformedUsers = (response.data || []).map(transformUserData);
+      // 提取数据，兼容不同响应结构
+      const userData = response.data?.data || response.data || [];
+      // 确保 userData 是数组，然后转换数据格式以匹配前端期望的字段名
+      const transformedUsers = Array.isArray(userData) ? userData.map(transformUserData) : [];
       setUsers(transformedUsers);
     } catch (error) {
       message.error(error.message || '获取用户列表失败');

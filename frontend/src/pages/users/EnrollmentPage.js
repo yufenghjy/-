@@ -7,11 +7,13 @@ import {
   Modal, 
   Form, 
   Select, 
-  Tag,
   Space,
-  Input
+  Popconfirm
 } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import EnrollmentService from '../../services/enrollmentService';
+import UserService from '../../services/userService';
+import CourseService from '../../services/courseService';
 
 const { Option } = Select;
 
@@ -23,57 +25,55 @@ const EnrollmentPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  // 模拟获取选课记录
+  // 获取选课记录
   const fetchEnrollments = async () => {
     setLoading(true);
     try {
-      // 实际项目中这里会调用API获取选课记录
-      // 模拟数据
-      setTimeout(() => {
-        setEnrollments([
-          { id: 1, studentId: 'student001', studentName: '张三', courseId: 1, courseName: '计算机科学导论', enrollTime: '2023-03-01' },
-          { id: 2, studentId: 'student002', studentName: '李四', courseId: 1, courseName: '计算机科学导论', enrollTime: '2023-03-01' },
-          { id: 3, studentId: 'student001', studentName: '张三', courseId: 2, courseName: '高等数学', enrollTime: '2023-03-02' }
-        ]);
-        setLoading(false);
-      }, 500);
+      const response = await EnrollmentService.getEnrollments();
+      console.log('Enrollments response:', response);
+      // 从响应中正确提取数据
+      const data = response.data?.data || [];
+      setEnrollments(Array.isArray(data) ? data : []);
+      setLoading(false);
     } catch (error) {
-      message.error('获取选课记录失败');
+      console.error('获取选课记录失败:', error);
+      message.error(error.message || '获取选课记录失败');
+      setEnrollments([]);
       setLoading(false);
     }
   };
 
-  // 模拟获取学生列表
+  // 获取学生列表
   const fetchStudents = async () => {
     try {
-      // 实际项目中这里会调用API获取学生列表
-      // 模拟数据
-      setTimeout(() => {
-        setStudents([
-          { id: 1, studentId: 'student001', name: '张三' },
-          { id: 2, studentId: 'student002', name: '李四' },
-          { id: 3, studentId: 'student003', name: '王五' }
-        ]);
-      }, 500);
+      const response = await UserService.getStudents();
+      console.log('Students response:', response);
+      // 从响应中正确提取数据
+      const data = response.data?.data || [];
+      // 确保数据是数组格式
+      const studentList = Array.isArray(data) ? data : [];
+      setStudents(studentList);
     } catch (error) {
-      message.error('获取学生列表失败');
+      console.error('获取学生列表失败:', error);
+      message.error(error.message || '获取学生列表失败');
+      setStudents([]);
     }
   };
 
-  // 模拟获取课程列表
+  // 获取课程列表
   const fetchCourses = async () => {
     try {
-      // 实际项目中这里会调用API获取课程列表
-      // 模拟数据
-      setTimeout(() => {
-        setCourses([
-          { id: 1, courseCode: 'CS101', name: '计算机科学导论' },
-          { id: 2, courseCode: 'MATH201', name: '高等数学' },
-          { id: 3, courseCode: 'ENG101', name: '大学英语' }
-        ]);
-      }, 500);
+      const response = await CourseService.getCourses();
+      console.log('Courses response:', response);
+      // 从响应中正确提取数据
+      const data = response.data?.data || [];
+      // 确保数据是数组格式
+      const courseList = Array.isArray(data) ? data : [];
+      setCourses(courseList);
     } catch (error) {
-      message.error('获取课程列表失败');
+      console.error('获取课程列表失败:', error);
+      message.error(error.message || '获取课程列表失败');
+      setCourses([]);
     }
   };
 
@@ -92,24 +92,28 @@ const EnrollmentPage = () => {
     try {
       const values = await form.validateFields();
       // 添加选课记录
+      await EnrollmentService.createEnrollment({
+        studentId: values.studentId,
+        courseId: values.courseId
+      });
       message.success('选课成功');
       setIsModalVisible(false);
       fetchEnrollments();
     } catch (error) {
-      console.error('操作失败:', error);
+      console.error('选课失败:', error);
+      message.error(error.message || '操作失败');
     }
   };
 
-  const handleDelete = (enrollmentId) => {
-    Modal.confirm({
-      title: '确认退课',
-      content: '确定要删除这个选课记录吗？',
-      onOk: () => {
-        // 实际项目中这里会调用API删除选课记录
-        message.success('退课成功');
-        fetchEnrollments();
-      }
-    });
+  const handleDelete = async (enrollmentId) => {
+    try {
+      await EnrollmentService.deleteEnrollment(enrollmentId);
+      message.success('退课成功');
+      fetchEnrollments();
+    } catch (error) {
+      console.error('退课失败:', error);
+      message.error(error.message || '退课失败');
+    }
   };
 
   const columns = [
@@ -117,34 +121,64 @@ const EnrollmentPage = () => {
       title: '学生学号',
       dataIndex: 'studentId',
       key: 'studentId',
+      render: (_, record) => {
+        // 使用正确的字段名查找对应的学生信息
+        const student = students.find(s => s.ID === record.studentId);
+        return student ? student.Username : record.studentId;
+      }
     },
     {
       title: '学生姓名',
       dataIndex: 'studentName',
       key: 'studentName',
+      render: (_, record) => {
+        // 如果后端已经返回了学生姓名，直接使用；否则从学生列表中查找
+        if (record.studentName) {
+          return record.studentName;
+        }
+        const student = students.find(s => s.ID === record.studentId);
+        return student ? student.Name : '未知学生';
+      }
     },
     {
       title: '课程名称',
       dataIndex: 'courseName',
       key: 'courseName',
+      render: (_, record) => {
+        // 如果后端已经返回了课程名称，直接使用；否则从课程列表中查找
+        if (record.courseName) {
+          return record.courseName;
+        }
+        const course = courses.find(c => c.ID === record.courseId);
+        return course ? course.Name : '未知课程';
+      }
     },
     {
       title: '选课时间',
       dataIndex: 'enrollTime',
       key: 'enrollTime',
+      render: (text) => text ? new Date(text).toLocaleString('zh-CN') : '未知时间'
     },
     {
       title: '操作',
       key: 'action',
       render: (_, record) => (
         <Space size="middle">
-          <Button 
-            danger 
-            onClick={() => handleDelete(record.id)}
-            size="small"
+          <Popconfirm
+            title="确认退课"
+            description="确定要删除这个选课记录吗？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
           >
-            退课
-          </Button>
+            <Button 
+              danger 
+              icon={<DeleteOutlined />}
+              size="small"
+            >
+              退课
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -198,8 +232,8 @@ const EnrollmentPage = () => {
               }
             >
               {students.map(student => (
-                <Option key={student.studentId} value={student.studentId}>
-                  {student.name} ({student.studentId})
+                <Option key={student.ID} value={student.ID}>
+                  {student.Name} ({student.Username})
                 </Option>
               ))}
             </Select>

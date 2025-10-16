@@ -43,7 +43,9 @@ const AttendancePage = () => {
   const fetchCourses = async () => {
     try {
       const response = await CourseService.getMyCourses();
-      setCourses(response.data || []);
+      // 从响应中正确提取数据
+      const courseData = response.data?.data || [];
+      setCourses(Array.isArray(courseData) ? courseData : []);
     } catch (error) {
       message.error(error.message || '获取课程列表失败');
     }
@@ -326,8 +328,8 @@ const AttendancePage = () => {
           >
             <Select placeholder="请选择课程">
               {courses.map(course => (
-                <Option key={course.ID} value={course.ID}>
-                  {course.Name} ({course.CourseCode})
+                <Option key={course.id} value={course.id}>
+                  {course.name} ({course.courseCode})
                 </Option>
               ))}
             </Select>

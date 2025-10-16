@@ -29,7 +29,7 @@ class CourseService {
       if (response.data && response.data.data) {
         response.data.data = response.data.data.map(course => transformCourseData(course));
       }
-      return response.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '获取课程列表失败');
     }
@@ -46,7 +46,7 @@ class CourseService {
       if (response.data && response.data.data) {
         response.data.data = response.data.data.map(course => transformCourseData(course));
       }
-      return response.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '获取我的课程失败');
     }
@@ -64,7 +64,7 @@ class CourseService {
       if (response.data && response.data.data) {
         response.data.data = transformCourseData(response.data.data);
       }
-      return response.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '获取课程详情失败');
     }
@@ -91,7 +91,7 @@ class CourseService {
       if (response.data && response.data.data) {
         response.data.data = transformCourseData(response.data.data);
       }
-      return response.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '创建课程失败');
     }
@@ -119,7 +119,7 @@ class CourseService {
       if (response.data && response.data.data) {
         response.data.data = transformCourseData(response.data.data);
       }
-      return response.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '更新课程失败');
     }
@@ -133,7 +133,7 @@ class CourseService {
   static async deleteCourse(id) {
     try {
       const response = await apiClient.delete(`/courses/${id}`);
-      return response.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '删除课程失败');
     }

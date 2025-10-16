@@ -45,8 +45,10 @@ const CoursesPage = () => {
     setLoading(true);
     try {
       const response = await CourseService.getCourses();
+      // 从响应中正确提取数据
+      const data = response.data?.data || [];
       // 转换数据格式以匹配前端期望的字段名
-      const transformedCourses = (response.data || []).map(course => transformCourseData(course));
+      const transformedCourses = (data || []).map(course => transformCourseData(course));
       setCourses(transformedCourses);
       setLoading(false);
     } catch (error) {
@@ -59,8 +61,10 @@ const CoursesPage = () => {
   const fetchTeachers = async () => {
     try {
       const response = await UserService.getTeachers();
+      // 从响应中正确提取数据
+      const data = response.data?.data || [];
       // 转换教师数据格式
-      const transformedTeachers = (response.data || []).map(teacher => ({
+      const transformedTeachers = (data || []).map(teacher => ({
         id: teacher.ID || teacher.id,
         name: teacher.Name || teacher.name
       }));

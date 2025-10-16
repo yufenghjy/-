@@ -87,6 +87,14 @@ func main() {
 			protected.GET("/checkin-sessions", handlers.GetCheckinSessions)
 			protected.PUT("/end-checkin/:session_id", handlers.EndCheckinSession)
 			protected.PUT("/manual-end-checkin/:session_id", handlers.ManualEndCheckinSession)
+			
+			// 选课管理接口
+			protected.GET("/enrollments", handlers.GetEnrollments)
+			protected.POST("/enrollments", handlers.CreateEnrollment)
+			protected.DELETE("/enrollments/:id", handlers.DeleteEnrollment)
+			
+			// 学生管理接口
+			protected.GET("/students", handlers.GetStudents)
 
 			// 用户管理接口 (需登录即可访问)
 			adminOnly := api.Group("/")
