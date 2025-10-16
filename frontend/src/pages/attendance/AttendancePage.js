@@ -12,8 +12,7 @@ import {
   Space,
   Row,
   Col,
-  Descriptions,
-  QRCode
+  Descriptions
 } from 'antd';
 import { 
   PlayCircleOutlined, 
@@ -32,6 +31,8 @@ const AttendancePage = () => {
   const [loading, setLoading] = useState(false);
   const [isStartModalVisible, setIsStartModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isQRModalVisible, setIsQRModalVisible] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [checkinRecords, setCheckinRecords] = useState([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
@@ -75,18 +76,9 @@ const AttendancePage = () => {
         startForm.resetFields();
         fetchSessions(); // 重新获取会话列表
         
-        // 显示签到二维码信息
-        Modal.info({
-          title: '签到已发起',
-          content: (
-            <div>
-              <p>会话码: {response.data.session_code}</p>
-              <QRCode value={response.data.checkin_url} />
-              <p>学生可通过扫描二维码进行签到</p>
-            </div>
-          ),
-          width: 400
-        });
+        // 设置二维码数据并显示二维码模态框
+        setQrCodeData(response.data);
+        setIsQRModalVisible(true);
       } else {
         message.error(response.msg || '签到发起失败');
       }
@@ -298,6 +290,28 @@ const AttendancePage = () => {
             <InputNumber min={1} max={60} defaultValue={10} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 二维码显示模态框 */}
+      <Modal
+        title="签到二维码"
+        open={isQRModalVisible}
+        onCancel={() => setIsQRModalVisible(false)}
+        onOk={() => setIsQRModalVisible(false)}
+        destroyOnHidden
+      >
+        {qrCodeData && (
+          <div style={{ textAlign: 'center' }}>
+            <p>会话码: {qrCodeData.session_code}</p>
+            <img 
+              src={`data:image/png;base64,${qrCodeData.qr_code}`} 
+              alt="签到二维码" 
+              style={{ width: '200px', height: '200px' }}
+            />
+            <p>学生可通过扫描二维码进行签到</p>
+            <p style={{ fontSize: '12px', color: '#999' }}>签到链接: {qrCodeData.checkin_url}</p>
+          </div>
+        )}
       </Modal>
 
       {/* 签到详情模态框 */}
