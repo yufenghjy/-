@@ -70,17 +70,31 @@ func main() {
 		api.POST("/login", handlers.Login)
 		api.GET("/session/:code", handlers.GetSessionInfo)
 		api.POST("/checkin", handlers.StudentCheckin)
+
 		// 受保护路由（需JWT认证）
 		protected := api.Use(middleware.JWTAuth())
 		{
+			// 签到相关接口
 			protected.POST("/start-checkin", handlers.StartCheckin)
 			protected.GET("/courses", handlers.GetMyCourses)
 			protected.GET("/courses/:id", handlers.GetCourseByID)
-			protected.POST("courses/add", handlers.CreateCourse)
+			protected.POST("/courses/add", handlers.CreateCourse)
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
 			protected.GET("/checkin-sessions", handlers.GetCheckinSessions)
 			protected.PUT("/end-checkin/:session_id", handlers.EndCheckinSession)
 			protected.PUT("/manual-end-checkin/:session_id", handlers.ManualEndCheckinSession)
+
+			// 用户管理接口 (需登录即可访问)
+			adminOnly := api.Group("/")
+			adminOnly.Use(middleware.JWTAuth())
+			{
+				adminOnly.GET("/users", handlers.GetUsers)
+				adminOnly.POST("/users", handlers.CreateUser)
+				adminOnly.GET("/users/:id", handlers.GetUser)
+				adminOnly.PUT("/users/:id", handlers.UpdateUser)
+				adminOnly.DELETE("/users/:id", handlers.DeleteUser)
+				adminOnly.PUT("/users/:id/password", handlers.ResetUserPassword)
+			}
 		}
 	}
 

@@ -9,37 +9,53 @@ import {
   Input, 
   Select, 
   Tag,
-  Space
+  Space,
+  Popconfirm,
+  Result
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
+import UserService from '../../services/userService';
+import AuthService from '../../services/authService';
 
 const { Option } = Select;
+
+// 转换用户数据，处理前后端字段命名不一致问题
+const transformUserData = (user) => {
+  if (!user) return user;
+  
+  // 处理大写字段名到小写字段名的转换
+  return {
+    id: user.ID || user.id,
+    username: user.Username || user.username,
+    name: user.Name || user.name,
+    role: user.Role || user.role,
+    email: user.Email || user.email,
+    createdAt: user.CreatedAt || user.createdAt,
+    updatedAt: user.UpdatedAt || user.updatedAt
+  };
+};
 
 const UsersPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [form] = Form.useForm();
-
-  // 模拟获取用户列表
+  const [passwordForm] = Form.useForm();
+  
+  // 获取用户列表
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // 实际项目中这里会调用API获取用户列表
-      // const response = await apiClient.get('/users');
-      // 模拟数据
-      setTimeout(() => {
-        setUsers([
-          { id: 1, username: 'student001', name: '张三', role: 'student', email: 'zhangsan@example.com' },
-          { id: 2, username: 'student002', name: '李四', role: 'student', email: 'lisi@example.com' },
-          { id: 3, username: 'teacher001', name: '王老师', role: 'teacher', email: 'wanglaoshi@example.com' },
-          { id: 4, username: 'admin001', name: '管理员', role: 'admin', email: 'admin@example.com' }
-        ]);
-        setLoading(false);
-      }, 500);
+      const response = await UserService.getUsers();
+      // 转换数据格式以匹配前端期望的字段名
+      const transformedUsers = (response.data || []).map(transformUserData);
+      setUsers(transformedUsers);
     } catch (error) {
-      message.error('获取用户列表失败');
+      message.error(error.message || '获取用户列表失败');
+    } finally {
       setLoading(false);
     }
   };
@@ -55,9 +71,17 @@ const UsersPage = () => {
   };
 
   const showEditModal = (user) => {
-    setEditingUser(user);
-    form.setFieldsValue(user);
+    const transformedUser = transformUserData(user);
+    setEditingUser(transformedUser);
+    form.setFieldsValue(transformedUser);
     setIsModalVisible(true);
+  };
+
+  const showPasswordModal = (user) => {
+    const transformedUser = transformUserData(user);
+    setSelectedUser(transformedUser);
+    passwordForm.resetFields();
+    setIsPasswordModalVisible(true);
   };
 
   const handleOk = async () => {
@@ -65,32 +89,44 @@ const UsersPage = () => {
       const values = await form.validateFields();
       if (editingUser) {
         // 编辑用户
-        message.success('用户信息更新成功');
+        const response = await UserService.updateUser(editingUser.id, values);
+        message.success(response.msg || '用户信息更新成功');
       } else {
         // 添加用户
-        message.success('用户添加成功');
+        const response = await UserService.createUser(values);
+        message.success(response.msg || '用户添加成功');
       }
       setIsModalVisible(false);
       fetchUsers();
     } catch (error) {
-      console.error('操作失败:', error);
+      message.error(error.message || '操作失败');
     }
   };
 
-  const handleDelete = (userId) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个用户吗？',
-      onOk: () => {
-        // 实际项目中这里会调用API删除用户
-        message.success('用户删除成功');
-        fetchUsers();
-      }
-    });
+  const handlePasswordReset = async () => {
+    try {
+      const values = await passwordForm.validateFields();
+      const response = await UserService.resetPassword(selectedUser.id, values.password);
+      message.success(response.msg || '密码重置成功');
+      setIsPasswordModalVisible(false);
+    } catch (error) {
+      message.error(error.message || '密码重置失败');
+    }
+  };
+
+  const handleDelete = async (userId) => {
+    try {
+      const response = await UserService.deleteUser(userId);
+      message.success(response.msg || '用户删除成功');
+      fetchUsers();
+    } catch (error) {
+      message.error(error.message || '删除用户失败');
+    }
   };
 
   const getRoleTag = (role) => {
-    switch (role) {
+    const roleLower = role?.toLowerCase();
+    switch (roleLower) {
       case 'admin':
         return <Tag color="red">管理员</Tag>;
       case 'teacher':
@@ -138,13 +174,27 @@ const UsersPage = () => {
             编辑
           </Button>
           <Button 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => handleDelete(record.id)}
+            icon={<KeyOutlined />} 
+            onClick={() => showPasswordModal(record)}
             size="small"
           >
-            删除
+            重置密码
           </Button>
+          <Popconfirm
+            title="确认删除"
+            description="确定要删除这个用户吗？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确认"
+            cancelText="取消"
+          >
+            <Button 
+              danger 
+              icon={<DeleteOutlined />} 
+              size="small"
+            >
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -189,7 +239,7 @@ const UsersPage = () => {
             label="用户名"
             rules={[{ required: true, message: '请输入用户名!' }]}
           >
-            <Input />
+            <Input disabled={!!editingUser} />
           </Form.Item>
           
           <Form.Item
@@ -203,7 +253,10 @@ const UsersPage = () => {
           <Form.Item
             name="email"
             label="邮箱"
-            rules={[{ required: true, message: '请输入邮箱!' }]}
+            rules={[
+              { required: true, message: '请输入邮箱!' },
+              { type: 'email', message: '请输入有效的邮箱地址!' }
+            ]}
           >
             <Input />
           </Form.Item>
@@ -224,11 +277,38 @@ const UsersPage = () => {
             <Form.Item
               name="password"
               label="密码"
-              rules={[{ required: true, message: '请输入密码!' }]}
+              rules={[
+                { required: true, message: '请输入密码!' },
+                { min: 6, message: '密码至少6位!' }
+              ]}
             >
               <Input.Password />
             </Form.Item>
           )}
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`重置【${selectedUser?.name}】的密码`}
+        open={isPasswordModalVisible}
+        onOk={handlePasswordReset}
+        onCancel={() => setIsPasswordModalVisible(false)}
+        destroyOnClose
+      >
+        <Form
+          form={passwordForm}
+          layout="vertical"
+        >
+          <Form.Item
+            name="password"
+            label="新密码"
+            rules={[
+              { required: true, message: '请输入新密码!' },
+              { min: 6, message: '密码至少6位!' }
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
         </Form>
       </Modal>
     </div>

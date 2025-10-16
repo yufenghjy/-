@@ -37,3 +37,16 @@ func JWTAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RoleAuth 角色认证中间件，限制只有特定角色可以访问
+func RoleAuth(role string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, exists := c.Get("role")
+		if !exists || userRole != role {
+			response.Error(c, 403, "权限不足")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

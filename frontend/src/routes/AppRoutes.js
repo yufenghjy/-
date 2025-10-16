@@ -25,7 +25,7 @@ const DashboardPage = () => {
   return (
     <div>
       <h2>欢迎来到考勤管理系统</h2>
-      <p>您好, {user?.name}!</p>
+      <p>您好, {user?.name || user?.Name}!</p>
       <p>您的角色是: {user?.role === 'admin' ? '管理员' : user?.role === 'teacher' ? '教师' : '学生'}</p>
       
       <div style={{ marginTop: '20px' }}>
