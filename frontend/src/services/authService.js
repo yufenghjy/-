@@ -33,11 +33,19 @@ class AuthService {
   }
 
   /**
+   * 获取认证Token
+   * @returns {string|null} 认证Token
+   */
+  static getToken() {
+    return localStorage.getItem('authToken');
+  }
+
+  /**
    * 检查用户是否已认证
    * @returns {boolean} 是否已认证
    */
   static isAuthenticated() {
-    return !!this.getCurrentUser();
+    return !!this.getCurrentUser() && !!this.getToken();
   }
 
   /**
@@ -47,7 +55,7 @@ class AuthService {
    */
   static hasRole(role) {
     const user = this.getCurrentUser();
-    return user && user.data && user.data.user && user.data.user.role === role;
+    return user && (user.role === role || user.Role === role);
   }
 }
 

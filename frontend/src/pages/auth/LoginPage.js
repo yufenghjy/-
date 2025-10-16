@@ -3,6 +3,7 @@ import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../../services/authService';
+import { ROLES } from '../../constants/roles';
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
@@ -12,11 +13,25 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const response = await AuthService.login(values);
+      
+      // 确保正确处理后端返回的数据格式
+      const userData = response.data.user || response.data;
+      const token = response.data.token || response.token;
+      
       // 保存用户信息和token
-      localStorage.setItem('authUser', JSON.stringify(response));
-      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('authUser', JSON.stringify(userData));
+      localStorage.setItem('authToken', token);
       message.success('登录成功');
-      navigate('/dashboard');
+      
+      // 根据角色跳转到不同页面
+      const role = userData.role || userData.Role;
+      if (role === ROLES.ADMIN) {
+        navigate('/users');
+      } else if (role === ROLES.TEACHER) {
+        navigate('/attendance');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login failed:', error);
       message.error(error.message || '登录失败，请检查用户名和密码');

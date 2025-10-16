@@ -6,7 +6,8 @@ import {
   CalendarOutlined, 
   TeamOutlined,
   LogoutOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  SolutionOutlined
 } from '@ant-design/icons';
 import { useNavigate, Outlet } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
@@ -33,7 +34,10 @@ const MainLayout = () => {
       }
     ];
 
-    if (user?.role === ROLES.ADMIN) {
+    // 获取用户角色，兼容大小写
+    const userRole = (user?.role || user?.Role || '').toLowerCase();
+
+    if (userRole === ROLES.ADMIN) {
       items.push(
         {
           key: '/users',
@@ -44,23 +48,46 @@ const MainLayout = () => {
           key: '/courses',
           icon: <BookOutlined />,
           label: '课程管理',
+        },
+        {
+          key: '/enrollments',
+          icon: <SolutionOutlined />,
+          label: '选课管理',
         }
       );
     }
 
-    items.push(
-      {
-        key: '/attendance',
-        icon: <CalendarOutlined />,
-        label: '考勤管理',
-      }
-    );
+    // 教师和管理员都可以访问考勤管理
+    if (userRole === ROLES.TEACHER || userRole === ROLES.ADMIN) {
+      items.push(
+        {
+          key: '/attendance',
+          icon: <CalendarOutlined />,
+          label: '考勤管理',
+        }
+      );
+    }
 
     return items;
   };
 
   const handleMenuClick = ({ key }) => {
     navigate(key);
+  };
+
+  // 获取用户角色标签
+  const getUserRoleLabel = () => {
+    const userRole = (user?.role || user?.Role || '').toLowerCase();
+    switch (userRole) {
+      case ROLES.ADMIN:
+        return '管理员';
+      case ROLES.TEACHER:
+        return '教师';
+      case ROLES.STUDENT:
+        return '学生';
+      default:
+        return '用户';
+    }
   };
 
   return (
@@ -76,7 +103,7 @@ const MainLayout = () => {
         </div>
         <div style={{ float: 'right', color: 'white', marginRight: '20px' }}>
           <span style={{ marginRight: '10px' }}>
-            欢迎, {user?.name}
+            欢迎, {user?.name || user?.Name} ({getUserRoleLabel()})
           </span>
           <Button 
             type="link" 

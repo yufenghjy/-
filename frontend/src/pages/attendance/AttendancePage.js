@@ -312,7 +312,7 @@ const AttendancePage = () => {
           startForm.resetFields();
         }}
         onOk={() => startForm.submit()}
-        destroyOnHidden
+        destroyOnClose
       >
         <Form
           form={startForm}
@@ -349,7 +349,7 @@ const AttendancePage = () => {
         open={isQRModalVisible}
         onCancel={() => setIsQRModalVisible(false)}
         onOk={() => setIsQRModalVisible(false)}
-        destroyOnHidden
+        destroyOnClose
       >
         {qrCodeData && (
           <div style={{ textAlign: 'center' }}>
@@ -372,7 +372,7 @@ const AttendancePage = () => {
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
         width={800}
-        destroyOnHidden
+        destroyOnClose
       >
         {selectedSession && (
           <div>
