@@ -93,6 +93,15 @@ func GetSessionDisplayInfo(sessionCode string) (courseName, teacherName string, 
 		return "", "", time.Time{}, errors.New("会话已结束")
 	}
 
+	// 检查是否过期
+	now := time.Now()
+	endTime := session.StartTime.Add(time.Duration(session.Duration) * time.Minute)
+	if now.After(endTime) {
+		// 会话已过期，更新状态
+		database.DB.Model(&session).Update("status", "ended")
+		return "", "", time.Time{}, errors.New("会话已结束")
+	}
+
 	return session.Course.Name, session.Teacher.Name, session.StartTime, nil
 }
 

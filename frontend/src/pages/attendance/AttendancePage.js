@@ -12,7 +12,8 @@ import {
   Space,
   Row,
   Col,
-  Descriptions
+  Descriptions,
+  Alert
 } from 'antd';
 import { 
   PlayCircleOutlined, 
@@ -373,9 +374,18 @@ const AttendancePage = () => {
             name="duration"
             label="持续时间(分钟)"
             rules={[{ required: true, message: '请输入持续时间!' }]}
+            extra="签到会话将在指定时间后自动结束"
           >
-            <InputNumber min={1} max={60} style={{ width: '100%' }} />
+            <InputNumber min={1} max={60} defaultValue={10} style={{ width: '100%' }} />
           </Form.Item>
+          
+          <Alert
+            message="提示"
+            description="签到会话将在指定的持续时间结束后自动结束，无需手动操作。"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
         </Form>
       </Modal>
 

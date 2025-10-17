@@ -4,6 +4,7 @@ import (
 	"backend/config"
 	"backend/internal/handlers"
 	"backend/internal/middleware"
+	"backend/internal/services"
 	models "backend/internal/model"
 	"backend/pkg/database"
 	"fmt"
@@ -29,6 +30,10 @@ func main() {
 		&models.CheckinSession{},
 		&models.CheckinRecord{},
 	)
+
+	// 初始化并启动定时任务服务
+	taskService := services.NewTaskService()
+	taskService.StartTaskScheduler()
 
 	// 设置 Gin 模式
 	gin.SetMode(gin.ReleaseMode)
