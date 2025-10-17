@@ -107,20 +107,51 @@ func GetSessionDisplayInfo(sessionCode string) (courseName, teacherName string, 
 
 // GetCheckinRecordsBySession 获取某次签到的记录
 func GetCheckinRecordsBySession(sessionID uint) ([]gin.H, error) {
-	var records []models.CheckinRecord
-	var result []gin.H
-
-	if err := database.DB.Where("session_id = ?", sessionID).Preload("Student").Find(&records).Error; err != nil {
+	var session models.CheckinSession
+	
+	// 首先获取签到会话信息，以获取课程ID
+	if err := database.DB.Preload("Course").Where("id = ?", sessionID).First(&session).Error; err != nil {
 		return nil, err
 	}
-
-	for _, r := range records {
-		result = append(result, gin.H{
-			"student_id":   r.StudentID,
-			"student_name": r.Student.Name,
-			"checkin_time": r.CheckinTime.Format("2006-01-02 15:04:05"),
-			"status":       r.Status,
-		})
+	
+	// 获取该课程的所有选课记录
+	var enrollments []models.Enrollment
+	if err := database.DB.Preload("Student").Where("course_id = ?", session.CourseID).Find(&enrollments).Error; err != nil {
+		return nil, err
+	}
+	
+	// 获取该会话的所有签到记录
+	var records []models.CheckinRecord
+	if err := database.DB.Preload("Student").Where("session_id = ?", sessionID).Find(&records).Error; err != nil {
+		return nil, err
+	}
+	
+	// 创建一个map来快速查找签到记录
+	recordMap := make(map[uint]models.CheckinRecord)
+	for _, record := range records {
+		recordMap[record.StudentID] = record
+	}
+	
+	// 构建结果，包含所有选课学生，无论是否签到
+	var result []gin.H
+	for _, enrollment := range enrollments {
+		if record, exists := recordMap[enrollment.StudentID]; exists {
+			// 学生已签到
+			result = append(result, gin.H{
+				"student_id":   record.StudentID,
+				"student_name": record.Student.Name,
+				"checkin_time": record.CheckinTime.Format("2006-01-02 15:04:05"),
+				"status":       record.Status,
+			})
+		} else {
+			// 学生未签到
+			result = append(result, gin.H{
+				"student_id":   enrollment.StudentID,
+				"student_name": enrollment.Student.Name,
+				"checkin_time": nil,
+				"status":       "absent", // 未签到的学生标记为缺席
+			})
+		}
 	}
 
 	return result, nil

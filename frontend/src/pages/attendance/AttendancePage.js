@@ -275,6 +275,12 @@ const AttendancePage = () => {
       title: '签到时间',
       dataIndex: 'checkin_time',
       key: 'checkin_time',
+      render: (checkin_time) => {
+        if (!checkin_time) {
+          return <span style={{ color: '#ccc' }}>未签到</span>;
+        }
+        return checkin_time;
+      },
     },
     {
       title: '状态',
