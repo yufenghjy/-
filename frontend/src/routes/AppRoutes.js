@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Card, Typography } from 'antd';
 import LoginPage from '../pages/auth/LoginPage';
 import MainLayout from '../components/layout/MainLayout';
 import AuthService from '../services/authService';
@@ -7,6 +8,9 @@ import AttendancePage from '../pages/attendance/AttendancePage';
 import UsersPage from '../pages/users/UsersPage';
 import CoursesPage from '../pages/courses/CoursesPage';
 import EnrollmentPage from '../pages/users/EnrollmentPage';
+import { ROLE_LABELS } from '../constants/roles';
+
+const { Title, Text } = Typography;
 
 // 简单的路由保护组件
 const ProtectedRoute = ({ children }) => {
@@ -18,37 +22,44 @@ const AuthRoute = ({ children }) => {
   return !AuthService.isAuthenticated() ? children : <Navigate to="/dashboard" />;
 };
 
-// 仪表盘页面组件
-const DashboardPage = () => {
+// 首页页面组件
+const HomePage = () => {
   const user = AuthService.getCurrentUser();
   
   return (
     <div>
-      <h2>欢迎来到考勤管理系统</h2>
-      <p>您好, {user?.name || user?.Name}!</p>
-      <p>您的角色是: {user?.role === 'admin' ? '管理员' : user?.role === 'teacher' ? '教师' : '学生'}</p>
+      <Card style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ 
+            width: '64px', 
+            height: '64px', 
+            borderRadius: '50%', 
+            backgroundColor: '#1890ff', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            marginRight: '16px',
+            color: 'white',
+            fontSize: '24px'
+          }}>
+            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0 }}>
+              欢迎来到考勤管理系统
+            </Title>
+            <Text type="secondary">
+              {ROLE_LABELS[user?.role] || user?.role || '未知角色'} 
+              {user?.username && ` (${user.username})`}
+            </Text>
+          </div>
+        </div>
+      </Card>
       
-      <div style={{ marginTop: '20px' }}>
-        {user?.role === 'admin' && (
-          <div>
-            <h3>管理员功能</h3>
-            <ul>
-              <li>用户管理 - 添加/编辑/删除用户</li>
-              <li>课程管理 - 添加/编辑/删除课程</li>
-              <li>选课管理 - 管理学生选课</li>
-            </ul>
-          </div>
-        )}
-        
-        {(user?.role === 'teacher' || user?.role === 'admin') && (
-          <div>
-            <h3>教师功能</h3>
-            <ul>
-              <li>考勤管理 - 发起签到、查看签到记录</li>
-            </ul>
-          </div>
-        )}
-      </div>
+      <Card>
+        <p>欢迎使用考勤管理系统！</p>
+        <p>请使用左侧导航菜单访问系统功能。</p>
+      </Card>
     </div>
   );
 };
@@ -73,7 +84,7 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<HomePage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/enrollments" element={<EnrollmentPage />} />
