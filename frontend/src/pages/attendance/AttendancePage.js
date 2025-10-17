@@ -23,10 +23,12 @@ import {
 } from '@ant-design/icons';
 import CheckinService from '../../services/checkinService';
 import CourseService from '../../services/courseService';
+import useAuth from '../../hooks/useAuth'; // 添加导入useAuth hook
 
 const { Option } = Select;
 
 const AttendancePage = () => {
+  const { user } = useAuth(); // 获取当前用户信息
   const [courses, setCourses] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,11 +44,24 @@ const AttendancePage = () => {
   // 获取课程列表
   const fetchCourses = async () => {
     try {
-      const response = await CourseService.getMyCourses();
+      console.log('当前用户信息:', user);
+      console.log('用户角色:', user?.role);
+      // 根据用户角色决定获取课程的方式
+      // 管理员获取所有课程，教师获取自己的课程
+      const isAdmin = user?.role === 'admin' || user?.role === 'ADMIN';
+      const response = isAdmin 
+        ? await CourseService.getCourses() 
+        : await CourseService.getMyCourses();
+      
+      console.log('API响应完整数据:', response); // 完整的响应数据
       // 从响应中正确提取数据
       const courseData = response.data?.data || [];
+      console.log('提取的课程数据:', courseData); // 调试日志
+      console.log('课程数据类型:', typeof courseData); // 检查数据类型
+      console.log('是否为数组:', Array.isArray(courseData)); // 检查是否为数组
       setCourses(Array.isArray(courseData) ? courseData : []);
     } catch (error) {
+      console.error('获取课程列表失败:', error); // 更详细的错误信息
       message.error(error.message || '获取课程列表失败');
     }
   };
@@ -56,12 +71,12 @@ const AttendancePage = () => {
     setLoading(true);
     try {
       const response = await CheckinService.getCheckinSessions();
-      console.log('后端返回的会话数据:', response); // 调试信息，查看实际数据结构
+      // console.log('后端返回的会话数据:', response); // 调试信息，查看实际数据结构
       
       // 处理会话数据，确保课程名称正确显示
       const sessionsWithCourseName = (response.data || []).map(session => {
         // 打印每个会话对象，查看实际结构
-        console.log('单个会话对象:', session);
+        // console.log('单个会话对象:', session);
         
         // 尝试从不同可能的字段中获取课程名称
         const courseName = session.courseName || 
@@ -87,7 +102,7 @@ const AttendancePage = () => {
   useEffect(() => {
     fetchCourses();
     fetchSessions();
-  }, []);
+  }, [user]); // 添加user到依赖数组中，确保当用户信息加载完成后重新执行
 
   // 发起签到
   const handleStartCheckin = async (values) => {
@@ -189,6 +204,11 @@ const AttendancePage = () => {
       key: 'courseName',
     },
     {
+      title: '教师',
+      dataIndex: 'teacher',
+      key: 'teacher',
+    },
+    {
       title: '开始时间',
       dataIndex: 'startTime',
       key: 'startTime',
@@ -276,34 +296,46 @@ const AttendancePage = () => {
 
   return (
     <div>
-      <Card 
-        title="考勤管理" 
-        extra={
-          <Space>
-            <Button 
-              type="primary" 
-              icon={<PlayCircleOutlined />} 
-              onClick={() => setIsStartModalVisible(true)}
-            >
-              发起签到
-            </Button>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={fetchSessions}
-            >
-              刷新
-            </Button>
-          </Space>
-        }
-      >
-        <Table 
-          dataSource={sessions} 
-          columns={sessionColumns} 
-          rowKey="id" 
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <Card 
+            title="发起签到" 
+            extra={
+              <Button 
+                type="primary" 
+                icon={<PlayCircleOutlined />} 
+                onClick={() => setIsStartModalVisible(true)}
+              >
+                发起签到
+              </Button>
+            }
+          >
+            <p>选择课程发起签到，学生可以通过扫描二维码进行签到。</p>
+          </Card>
+        </Col>
+        
+        <Col span={24}>
+          <Card 
+            title="签到会话列表" 
+            extra={
+              <Button 
+                icon={<ReloadOutlined />} 
+                onClick={fetchSessions}
+              >
+                刷新
+              </Button>
+            }
+          >
+            <Table 
+              dataSource={sessions} 
+              columns={sessionColumns} 
+              rowKey="id" 
+              loading={loading}
+              pagination={{ pageSize: 10 }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {/* 发起签到模态框 */}
       <Modal
@@ -320,6 +352,7 @@ const AttendancePage = () => {
           form={startForm}
           layout="vertical"
           onFinish={handleStartCheckin}
+          initialValues={{ duration: 10 }}  // 设置表单初始值
         >
           <Form.Item
             name="course_id"
@@ -327,9 +360,10 @@ const AttendancePage = () => {
             rules={[{ required: true, message: '请选择课程!' }]}
           >
             <Select placeholder="请选择课程">
+              {console.log('渲染课程列表:', courses)}
               {courses.map(course => (
-                <Option key={course.id} value={course.id}>
-                  {course.name} ({course.courseCode})
+                <Option key={course.id || course.ID} value={course.id || course.ID}>
+                  {course.name || course.Name} - {course.teacher || course.Teacher}
                 </Option>
               ))}
             </Select>
@@ -340,7 +374,7 @@ const AttendancePage = () => {
             label="持续时间(分钟)"
             rules={[{ required: true, message: '请输入持续时间!' }]}
           >
-            <InputNumber min={1} max={60} defaultValue={10} style={{ width: '100%' }} />
+            <InputNumber min={1} max={60} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -378,40 +412,21 @@ const AttendancePage = () => {
       >
         {selectedSession && (
           <div>
-            <Card size="small" title="会话信息" style={{ marginBottom: 16 }}>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="会话码">{selectedSession.sessionCode}</Descriptions.Item>
-                  </Descriptions>
-                </Col>
-                <Col span={8}>
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="课程">{selectedSession.courseName}</Descriptions.Item>
-                  </Descriptions>
-                </Col>
-                <Col span={8}>
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="状态">{getStatusTag(selectedSession.status)}</Descriptions.Item>
-                  </Descriptions>
-                </Col>
-              </Row>
-              {selectedSession.status === 'active' && (
-                <Row style={{ marginTop: 16 }}>
-                  <Col span={24}>
-                    <Button 
-                      danger 
-                      icon={<StopOutlined />} 
-                      onClick={() => handleEndSession(selectedSession)}
-                    >
-                      手动结束签到
-                    </Button>
-                  </Col>
-                </Row>
-              )}
-            </Card>
+            <Descriptions title="会话信息" column={2} bordered>
+              <Descriptions.Item label="会话码">{selectedSession.sessionCode}</Descriptions.Item>
+              <Descriptions.Item label="课程">{selectedSession.courseName}</Descriptions.Item>
+              <Descriptions.Item label="教师">{selectedSession.teacher}</Descriptions.Item>
+              <Descriptions.Item label="开始时间">{selectedSession.startTime}</Descriptions.Item>
+              <Descriptions.Item label="持续时间">{selectedSession.duration} 分钟</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                <Tag color={selectedSession.status === 'active' ? 'green' : 'red'}>
+                  {selectedSession.status === 'active' ? '进行中' : '已结束'}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
             
-            <Card size="small" title="签到记录">
+            <div style={{ marginTop: 20 }}>
+              <h3>签到记录</h3>
               <Table 
                 dataSource={checkinRecords} 
                 columns={recordColumns} 
@@ -419,7 +434,7 @@ const AttendancePage = () => {
                 loading={loadingRecords}
                 pagination={{ pageSize: 5 }}
               />
-            </Card>
+            </div>
           </div>
         )}
       </Modal>

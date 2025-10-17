@@ -13,13 +13,24 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const response = await AuthService.login(values);
+      console.log('登录响应:', response); // 调试日志
       
-      // 确保正确处理后端返回的数据格式
-      const userData = response.data.user || response.data;
-      const token = response.data.token || response.token;
+      // 正确处理后端返回的数据格式
+      const userData = response.data?.user || response.data || response;
+      const token = response.data?.token || response.token;
+      
+      // 确保用户数据和token都存在
+      if (!userData || !token) {
+        throw new Error('登录响应格式不正确');
+      }
       
       // 保存用户信息和token
-      localStorage.setItem('authUser', JSON.stringify(userData));
+      localStorage.setItem('authUser', JSON.stringify({
+        id: userData.id || userData.ID,
+        username: userData.username || userData.Username,
+        name: userData.name || userData.Name,
+        role: userData.role || userData.Role
+      }));
       localStorage.setItem('authToken', token);
       message.success('登录成功');
       

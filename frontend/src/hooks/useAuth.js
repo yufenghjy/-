@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AuthService from '../services/authService';
 
 /**
  * 自定义Hook：用于管理用户认证状态
@@ -28,17 +29,34 @@ const useAuth = () => {
     localStorage.removeItem('authToken');
   };
 
+  // 监听 localStorage 变化，以便在多个标签页之间同步用户状态
   useEffect(() => {
-    const storedUser = localStorage.getItem('authUser');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error('Failed to parse user data', e);
-        localStorage.removeItem('authUser');
-        localStorage.removeItem('authToken');
+    const handleStorageChange = (e) => {
+      if (e.key === 'authUser') {
+        if (e.newValue) {
+          try {
+            const parsedUser = JSON.parse(e.newValue);
+            setUser(parsedUser);
+          } catch (err) {
+            console.error('Failed to parse user data from storage event', err);
+            logout();
+          }
+        } else {
+          setUser(null);
+        }
       }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // 初始化用户状态
+  useEffect(() => {
+    // 直接从 AuthService 获取当前用户信息
+    const currentUser = AuthService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
     }
   }, []);
 
