@@ -9,7 +9,7 @@ import {
   DashboardOutlined,
   SolutionOutlined
 } from '@ant-design/icons';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { ROLES } from '../../constants/roles';
 
@@ -18,6 +18,7 @@ const { Header, Content, Sider } = Layout;
 const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -30,7 +31,7 @@ const MainLayout = () => {
       {
         key: '/dashboard',
         icon: <DashboardOutlined />,
-        label: '仪表盘',
+        label: '首页',
       }
     ];
 
@@ -119,6 +120,7 @@ const MainLayout = () => {
         <Sider width={200} className="site-layout-background">
           <Menu
             mode="inline"
+            selectedKeys={[location.pathname]}
             defaultSelectedKeys={['/dashboard']}
             style={{ height: '100%', borderRight: 0 }}
             items={getMenuItems()}
