@@ -45,8 +45,6 @@ const AttendancePage = () => {
   // 获取课程列表
   const fetchCourses = async () => {
     try {
-      console.log('当前用户信息:', user);
-      console.log('用户角色:', user?.role);
       // 根据用户角色决定获取课程的方式
       // 管理员获取所有课程，教师获取自己的课程
       const isAdmin = user?.role === 'admin' || user?.role === 'ADMIN';
@@ -54,12 +52,8 @@ const AttendancePage = () => {
         ? await CourseService.getCourses() 
         : await CourseService.getMyCourses();
       
-      console.log('API响应完整数据:', response); // 完整的响应数据
       // 从响应中正确提取数据
       const courseData = response.data?.data || [];
-      console.log('提取的课程数据:', courseData); // 调试日志
-      console.log('课程数据类型:', typeof courseData); // 检查数据类型
-      console.log('是否为数组:', Array.isArray(courseData)); // 检查是否为数组
       setCourses(Array.isArray(courseData) ? courseData : []);
     } catch (error) {
       console.error('获取课程列表失败:', error); // 更详细的错误信息
@@ -72,12 +66,9 @@ const AttendancePage = () => {
     setLoading(true);
     try {
       const response = await CheckinService.getCheckinSessions();
-      // console.log('后端返回的会话数据:', response); // 调试信息，查看实际数据结构
       
       // 处理会话数据，确保课程名称正确显示
       const sessionsWithCourseName = (response.data || []).map(session => {
-        // 打印每个会话对象，查看实际结构
-        // console.log('单个会话对象:', session);
         
         // 尝试从不同可能的字段中获取课程名称
         const courseName = session.courseName || 
@@ -145,7 +136,6 @@ const AttendancePage = () => {
 
   // 结束签到会话
   const handleEndSession = async (session) => {
-    console.log('handleEndSession called with session:', session);
     try {
       const response = await CheckinService.manualEndCheckinSession(session.id);
       message.success(response.message || '签到会话已手动结束');
@@ -367,7 +357,6 @@ const AttendancePage = () => {
             rules={[{ required: true, message: '请选择课程!' }]}
           >
             <Select placeholder="请选择课程">
-              {console.log('渲染课程列表:', courses)}
               {courses.map(course => (
                 <Option key={course.id || course.ID} value={course.id || course.ID}>
                   {course.name || course.Name} - {course.teacher || course.Teacher}

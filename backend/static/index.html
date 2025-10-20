@@ -63,7 +63,6 @@
         const url = new URL(currentUrl);
         const urlParams = new URLSearchParams(url.search);
         const sessionCode = urlParams.get('session');
-        console.log('session 参数值：', sessionCode);
         if (!sessionCode) {
             document.getElementById('loading').innerHTML = '<div class="alert alert-danger">无效的签到链接！</div>';
             document.getElementById('loading').classList.remove('d-none');

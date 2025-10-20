@@ -25,12 +25,10 @@ class CourseService {
   static async getCourses() {
     try {
       const response = await apiClient.get('/courses/all');
-      console.log('getCourses 原始响应:', response); // 调试日志
       // 转换数据格式
       if (response.data && response.data.data) {
         response.data.data = response.data.data.map(course => transformCourseData(course));
       }
-      console.log('getCourses 转换后响应:', response); // 调试日志
       return response;
     } catch (error) {
       throw new Error(error.response?.data?.msg || '获取课程列表失败');

@@ -288,9 +288,16 @@ const CoursesPage = () => {
           <Form.Item
             name="semester"
             label="学期"
-            rules={[{ required: true, message: '请输入学期!' }]}
+            rules={[{ required: true, message: '请选择学期!' }]}
           >
-            <Input />
+            <Select placeholder="请选择学期">
+              <Select.Option value="2025-春季">2025年春季</Select.Option>
+              <Select.Option value="2025-秋季">2025年秋季</Select.Option>
+              <Select.Option value="2026-春季">2026年春季</Select.Option>
+              <Select.Option value="2026-秋季">2026年秋季</Select.Option>
+              <Select.Option value="2027-春季">2027年春季</Select.Option>
+              <Select.Option value="2027-秋季">2027年秋季</Select.Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

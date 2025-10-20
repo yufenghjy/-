@@ -30,7 +30,6 @@ const EnrollmentPage = () => {
     setLoading(true);
     try {
       const response = await EnrollmentService.getEnrollments();
-      console.log('Enrollments response:', response);
       // 从响应中正确提取数据
       const data = response.data?.data || [];
       setEnrollments(Array.isArray(data) ? data : []);
@@ -47,7 +46,6 @@ const EnrollmentPage = () => {
   const fetchStudents = async () => {
     try {
       const response = await UserService.getStudents();
-      console.log('Students response:', response);
       // 从响应中正确提取数据
       const data = response.data?.data || [];
       // 确保数据是数组格式
@@ -64,7 +62,6 @@ const EnrollmentPage = () => {
   const fetchCourses = async () => {
     try {
       const response = await CourseService.getCourses();
-      console.log('Courses response:', response);
       // 从响应中正确提取数据
       const data = response.data?.data || [];
       // 确保数据是数组格式
