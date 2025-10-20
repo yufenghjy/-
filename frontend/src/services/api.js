@@ -33,11 +33,21 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
+    // 检查是否是登录请求
+    const isLoginRequest = error.config && 
+      (error.config.url === '/login' || 
+       error.config.url === 'login' ||
+       error.config.url.endsWith('/login'));
+    
+    // 只有在非登录请求且状态码为401时才重定向到登录页
+    if (error.response?.status === 401 && !isLoginRequest) {
       // 未授权，清除用户信息并跳转到登录页
       localStorage.removeItem('authUser');
       localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      // 只有在浏览器环境中才进行重定向
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

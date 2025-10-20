@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Card, Typography } from 'antd';
+import { Card, Typography, App as AntApp } from 'antd';
 import LoginPage from '../pages/auth/LoginPage';
 import MainLayout from '../components/layout/MainLayout';
 import AuthService from '../services/authService';
@@ -66,31 +66,33 @@ const HomePage = () => {
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      <Route 
-        path="/login" 
-        element={
-          <AuthRoute>
-            <LoginPage />
-          </AuthRoute>
-        } 
-      />
-      <Route 
-        path="/" 
-        element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={<HomePage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/courses" element={<CoursesPage />} />
-        <Route path="/enrollments" element={<EnrollmentPage />} />
-        <Route path="/attendance" element={<AttendancePage />} />
-      </Route>
-    </Routes>
+    <AntApp>
+      <Routes>
+        <Route 
+          path="/login" 
+          element={
+            <AuthRoute>
+              <LoginPage />
+            </AuthRoute>
+          } 
+        />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" />} />
+          <Route path="/dashboard" element={<HomePage />} />
+          <Route path="/users" element={<UsersPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/enrollments" element={<EnrollmentPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
+        </Route>
+      </Routes>
+    </AntApp>
   );
 };
 

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
+import { Form, Input, Button, Card, App } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../../services/authService';
 import { ROLES } from '../../constants/roles';
 
 const LoginPage = () => {
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -13,7 +14,6 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const response = await AuthService.login(values);
-      console.log('登录响应:', response); // 调试日志
       
       // 正确处理后端返回的数据格式
       const userData = response.data?.user || response.data || response;
@@ -32,7 +32,7 @@ const LoginPage = () => {
         role: userData.role || userData.Role
       }));
       localStorage.setItem('authToken', token);
-      message.success('登录成功');
+      messageApi.success('登录成功');
       
       // 根据角色跳转到不同页面
       const role = userData.role || userData.Role;
@@ -45,7 +45,58 @@ const LoginPage = () => {
       }
     } catch (error) {
       console.error('Login failed:', error);
-      message.error(error.message || '登录失败，请检查用户名和密码');
+      
+      // 提供更具体和友好的错误提示
+      let errorMessage = '登录失败，请检查用户名和密码';
+      
+      // 根据不同的错误类型提供具体的错误信息
+      if (error.response) {
+        // 服务器返回了错误响应
+        switch (error.response.status) {
+          case 401:
+            errorMessage = '用户名或密码错误，请重新输入';
+            break;
+          case 403:
+            errorMessage = '账户已被禁用，请联系管理员';
+            break;
+          case 404:
+            errorMessage = '登录服务不可用，请稍后再试';
+            break;
+          case 500:
+            errorMessage = '服务器内部错误，请稍后再试';
+            break;
+          default:
+            // 尝试从响应数据中获取错误消息
+            if (error.response.data) {
+              if (typeof error.response.data === 'string') {
+                errorMessage = error.response.data;
+              } else if (error.response.data.msg) {
+                errorMessage = error.response.data.msg;
+              } else if (error.response.data.message) {
+                errorMessage = error.response.data.message;
+              } else if (error.response.data.error) {
+                errorMessage = error.response.data.error;
+              } else if (typeof error.response.data === 'object') {
+                // 尝试从嵌套对象中获取错误消息
+                const data = error.response.data;
+                if (data.data && typeof data.data === 'string') {
+                  errorMessage = data.data;
+                } else if (data.data && data.data.msg) {
+                  errorMessage = data.data.msg;
+                }
+              }
+            }
+        }
+      } else if (error.request) {
+        // 请求已发出但没有收到响应
+        errorMessage = '网络连接异常，请检查网络设置';
+      } else if (error.message) {
+        // 其他错误
+        errorMessage = error.message;
+      }
+      
+      // 显示错误消息
+      messageApi.error(errorMessage);
     } finally {
       setLoading(false);
     }
