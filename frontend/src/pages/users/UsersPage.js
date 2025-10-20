@@ -11,9 +11,10 @@ import {
   Tag,
   Space,
   Popconfirm,
-  Result
+  Result,
+  Alert
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined, RedoOutlined } from '@ant-design/icons';
 import UserService from '../../services/userService';
 import AuthService from '../../services/authService';
 
@@ -44,6 +45,7 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const [usernameError, setUsernameError] = useState(null);
   
   // 获取用户列表
   const fetchUsers = async () => {
@@ -56,6 +58,7 @@ const UsersPage = () => {
       const transformedUsers = Array.isArray(userData) ? userData.map(transformUserData) : [];
       setUsers(transformedUsers);
     } catch (error) {
+      console.error('获取用户列表失败:', error);
       message.error(error.message || '获取用户列表失败');
     } finally {
       setLoading(false);
@@ -66,9 +69,17 @@ const UsersPage = () => {
     fetchUsers();
   }, []);
 
+  // 生成随机用户名
+  const generateRandomUsername = (name = '') => {
+    const prefix = name.toLowerCase().replace(/\s+/g, '');
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4位随机数
+    return prefix ? `${prefix}${randomNum}` : `user${randomNum}`;
+  };
+
   const showAddModal = () => {
     setEditingUser(null);
     form.resetFields();
+    setUsernameError(null); // 清除之前的用户名错误
     setIsModalVisible(true);
   };
 
@@ -76,6 +87,7 @@ const UsersPage = () => {
     const transformedUser = transformUserData(user);
     setEditingUser(transformedUser);
     form.setFieldsValue(transformedUser);
+    setUsernameError(null); // 清除之前的用户名错误
     setIsModalVisible(true);
   };
 
@@ -92,16 +104,45 @@ const UsersPage = () => {
       if (editingUser) {
         // 编辑用户
         const response = await UserService.updateUser(editingUser.id, values);
-        message.success(response.msg || '用户信息更新成功');
+        message.success(response.data?.msg || response.msg || '用户信息更新成功');
+        setIsModalVisible(false);
+        setUsernameError(null); // 清除错误
       } else {
         // 添加用户
-        const response = await UserService.createUser(values);
-        message.success(response.msg || '用户添加成功');
+        try {
+          const response = await UserService.createUser(values);
+          message.success(response.data?.msg || response.msg || '用户添加成功');
+          setIsModalVisible(false);
+          setUsernameError(null); // 清除错误
+        } catch (error) {
+          // 检查是否是用户名已存在的错误
+          console.error('创建用户失败:', error);
+          if (error.response && error.response.data && error.response.data.msg === '用户名已存在') {
+            setUsernameError('用户名已存在，请修改用户名或生成新用户名');
+            message.error('用户名已存在，请修改用户名或生成新用户名');
+            return; // 不关闭模态框，让用户修改
+          }
+          message.error(error.response?.data?.msg || error.message || '操作失败');
+          throw error; // 其他错误正常抛出
+        }
       }
-      setIsModalVisible(false);
       fetchUsers();
     } catch (error) {
-      message.error(error.message || '操作失败');
+      // 只有非用户名重复的错误才显示通用错误信息
+      if (usernameError === null) {
+        message.error(error.response?.data?.msg || error.message || '操作失败');
+      }
+    }
+  };
+
+  const handleDelete = async (userId) => {
+    try {
+      const response = await UserService.deleteUser(userId);
+      message.success(response.data?.msg || response.msg || '用户删除成功');
+      fetchUsers();
+    } catch (error) {
+      console.error('删除用户失败:', error);
+      message.error(error.response?.data?.msg || error.message || '删除用户失败');
     }
   };
 
@@ -109,20 +150,11 @@ const UsersPage = () => {
     try {
       const values = await passwordForm.validateFields();
       const response = await UserService.resetPassword(selectedUser.id, values.password);
-      message.success(response.msg || '密码重置成功');
+      message.success(response.data?.msg || response.msg || '密码重置成功');
       setIsPasswordModalVisible(false);
     } catch (error) {
-      message.error(error.message || '密码重置失败');
-    }
-  };
-
-  const handleDelete = async (userId) => {
-    try {
-      const response = await UserService.deleteUser(userId);
-      message.success(response.msg || '用户删除成功');
-      fetchUsers();
-    } catch (error) {
-      message.error(error.message || '删除用户失败');
+      console.error('密码重置失败:', error);
+      message.error(error.response?.data?.msg || error.message || '密码重置失败');
     }
   };
 
@@ -138,6 +170,14 @@ const UsersPage = () => {
       default:
         return <Tag>{role}</Tag>;
     }
+  };
+
+  // 重新生成用户名
+  const regenerateUsername = () => {
+    const name = form.getFieldValue('name');
+    const newUsername = generateRandomUsername(name);
+    form.setFieldsValue({ username: newUsername });
+    setUsernameError(null); // 清除错误提示
   };
 
   const columns = [
@@ -241,8 +281,34 @@ const UsersPage = () => {
             label="用户名"
             rules={[{ required: true, message: '请输入用户名!' }]}
           >
-            <Input disabled={!!editingUser} />
+            <Input 
+              disabled={!!editingUser} 
+              addonAfter={
+                !editingUser && (
+                  <Button 
+                    type="link" 
+                    icon={<RedoOutlined />} 
+                    onClick={regenerateUsername}
+                    style={{ padding: 0 }}
+                  />
+                )
+              }
+            />
           </Form.Item>
+          
+          {usernameError && (
+            <Alert 
+              message={usernameError} 
+              type="error" 
+              showIcon 
+              action={
+                <Button size="small" danger onClick={regenerateUsername}>
+                  生成新用户名
+                </Button>
+              }
+              style={{ marginBottom: 16 }}
+            />
+          )}
           
           <Form.Item
             name="name"
