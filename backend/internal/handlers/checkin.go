@@ -131,11 +131,45 @@ func GetCheckinRecords(c *gin.Context) {
 	response.Success(c, records)
 }
 
-// GetCheckinSessions 获取所有签到会话列表
+// GetCheckinSessions 获取签到会话列表
 func GetCheckinSessions(c *gin.Context) {
 	var sessions []models.CheckinSession
-	// 预加载课程和教师信息
-	result := database.DB.Preload("Course").Preload("Teacher").Find(&sessions)
+	
+	// 获取当前用户信息
+	userIDFloat, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+	
+	var userID uint
+	switch v := userIDFloat.(type) {
+	case float64:
+		userID = uint(v)
+	case uint:
+		userID = v
+	default:
+		response.Error(c, http.StatusInternalServerError, "无效的用户ID类型")
+		return
+	}
+	
+	// 获取用户角色
+	userRole, roleExists := c.Get("role")
+	if !roleExists {
+		response.Error(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+	
+	// 构建查询
+	query := database.DB.Preload("Course").Preload("Teacher")
+	
+	// 如果是教师角色，只获取该教师创建的会话
+	if userRole == "teacher" {
+		query = query.Where("teacher_id = ?", userID)
+	}
+	// 管理员可以看到所有会话，不需要额外过滤
+	
+	result := query.Find(&sessions)
 	if result.Error != nil {
 		response.Error(c, http.StatusInternalServerError, "获取签到会话列表失败")
 		return
