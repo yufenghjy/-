@@ -89,6 +89,7 @@ func main() {
 			protected.PUT("/courses/:id", handlers.UpdateCourse) // 添加更新课程路由
 			protected.DELETE("/courses/:id", handlers.DeleteCourse) // 添加删除课程路由
 			protected.GET("/records/:session_id", handlers.GetCheckinRecords)
+			protected.POST("/manual-checkin/:session_id", handlers.ManualCheckin) // 添加补签接口
 			protected.GET("/checkin-sessions", handlers.GetCheckinSessions)
 			protected.PUT("/end-checkin/:session_id", handlers.EndCheckinSession)
 			protected.PUT("/manual-end-checkin/:session_id", handlers.ManualEndCheckinSession)

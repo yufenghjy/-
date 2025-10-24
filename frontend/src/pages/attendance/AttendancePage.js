@@ -13,14 +13,17 @@ import {
   Row,
   Col,
   Descriptions,
-  Alert
+  Alert,
+  Popconfirm
 } from 'antd';
 import { 
   PlayCircleOutlined, 
   StopOutlined, 
   EyeOutlined, 
   ReloadOutlined,
-  QrcodeOutlined
+  QrcodeOutlined,
+  CheckOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import CheckinService from '../../services/checkinService';
 import CourseService from '../../services/courseService';
@@ -68,7 +71,7 @@ const AttendancePage = () => {
       const response = await CheckinService.getCheckinSessions();
       
       // 处理会话数据，确保课程名称正确显示
-      const sessionsWithCourseName = (response.data || []).map(session => {
+      const sessionsWithCourseName = (response.data?.data || []).map(session => {
         
         // 尝试从不同可能的字段中获取课程名称
         const courseName = session.courseName || 
@@ -100,17 +103,17 @@ const AttendancePage = () => {
   const handleStartCheckin = async (values) => {
     try {
       const response = await CheckinService.startCheckin(values);
-      if (response.success) {
+      if (response.data?.success) {
         message.success('签到发起成功');
         setIsStartModalVisible(false);
         startForm.resetFields();
         fetchSessions(); // 重新获取会话列表
         
         // 设置二维码数据并显示二维码模态框
-        setQrCodeData(response.data);
+        setQrCodeData(response.data.data);
         setIsQRModalVisible(true);
       } else {
-        message.error(response.msg || '签到发起失败');
+        message.error(response.data?.msg || '签到发起失败');
       }
     } catch (error) {
       message.error(error.message || '签到发起失败');
@@ -125,7 +128,7 @@ const AttendancePage = () => {
     
     try {
       const response = await CheckinService.getCheckinRecords(session.id);
-      setCheckinRecords(response.data || []);
+      setCheckinRecords(response.data?.data || []);
     } catch (error) {
       message.error(error.message || '获取签到记录失败');
       setCheckinRecords([]);
@@ -168,6 +171,34 @@ const AttendancePage = () => {
     
     setQrCodeData(mockQRCodeData);
     setIsQRModalVisible(true);
+  };
+
+  // 补签功能
+  const handleManualCheckin = async (record, status) => {
+    try {
+      const response = await CheckinService.manualCheckin(selectedSession.id, {
+        student_id: record.student_id,
+        status: status
+      });
+      
+      message.success(response.data?.message || '补签成功');
+      
+      // 更新本地记录状态
+      const updatedRecords = checkinRecords.map(item => {
+        if (item.student_id === record.student_id) {
+          return {
+            ...item,
+            status: status,
+            checkin_time: status === 'absent' ? null : new Date().toLocaleString()
+          };
+        }
+        return item;
+      });
+      
+      setCheckinRecords(updatedRecords);
+    } catch (error) {
+      message.error(error.message || '补签失败');
+    }
   };
 
   // 会话状态标签
@@ -289,6 +320,51 @@ const AttendancePage = () => {
         }
       },
     },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => {
+        // 如果学生已签到（出勤或迟到），则允许修改为其他状态（包括缺勤）
+        if (record.status === 'present' || record.status === 'late') {
+          return (
+            <Popconfirm
+              title="确定要将该学生标记为缺勤吗？"
+              onConfirm={() => handleManualCheckin(record, 'absent')}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button size="small" icon={<EditOutlined />}>标记缺勤</Button>
+            </Popconfirm>
+          );
+        }
+        
+        // 如果学生未签到（缺勤），则可以进行补签
+        if (record.status === 'absent') {
+          return (
+            <Space size="small">
+              <Popconfirm
+                title="确定要将该学生标记为出勤吗？"
+                onConfirm={() => handleManualCheckin(record, 'present')}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button size="small" type="primary" icon={<CheckOutlined />}>补签出勤</Button>
+              </Popconfirm>
+              <Popconfirm
+                title="确定要将该学生标记为迟到吗？"
+                onConfirm={() => handleManualCheckin(record, 'late')}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button size="small" icon={<EditOutlined />}>补签迟到</Button>
+              </Popconfirm>
+            </Space>
+          );
+        }
+        
+        return null;
+      },
+    },
   ];
 
   return (
@@ -343,7 +419,7 @@ const AttendancePage = () => {
           startForm.resetFields();
         }}
         onOk={() => startForm.submit()}
-        destroyOnClose
+        destroyOnHidden={true}
       >
         <Form
           form={startForm}
@@ -371,7 +447,7 @@ const AttendancePage = () => {
             rules={[{ required: true, message: '请输入持续时间!' }]}
             extra="签到会话将在指定时间后自动结束"
           >
-            <InputNumber min={1} max={60} defaultValue={10} style={{ width: '100%' }} />
+            <InputNumber min={1} max={60} style={{ width: '100%' }} />
           </Form.Item>
           
           <Alert
@@ -390,7 +466,7 @@ const AttendancePage = () => {
         open={isQRModalVisible}
         onCancel={() => setIsQRModalVisible(false)}
         onOk={() => setIsQRModalVisible(false)}
-        destroyOnClose
+        destroyOnHidden={true}
       >
         {qrCodeData && (
           <div style={{ textAlign: 'center' }}>
@@ -413,7 +489,7 @@ const AttendancePage = () => {
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden={true}
       >
         {selectedSession && (
           <div>

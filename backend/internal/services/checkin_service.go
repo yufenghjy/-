@@ -210,6 +210,61 @@ func ManualEndCheckinSession(sessionID uint, teacherID uint) error {
 	return nil
 }
 
+// ManualCheckin 手动补签功能
+func ManualCheckin(sessionID uint, studentID uint, status string) error {
+	// 验证状态值
+	if status != "present" && status != "late" && status != "absent" {
+		return errors.New("无效的状态值")
+	}
+
+	// 获取会话信息
+	var session models.CheckinSession
+	if err := database.DB.Where("id = ?", sessionID).First(&session).Error; err != nil {
+		return errors.New("签到会话不存在")
+	}
+
+	// 检查学生是否选修了该课程
+	var enrollment models.Enrollment
+	if err := database.DB.Where("student_id = ? AND course_id = ?", studentID, session.CourseID).First(&enrollment).Error; err != nil {
+		return errors.New("该学生未选修此课程")
+	}
+
+	// 准备签到记录
+	record := models.CheckinRecord{
+		SessionID:            session.ID,
+		StudentID:            studentID,
+		CourseID:             session.CourseID,
+		CheckinTime:          time.Now(),
+		Status:               status,
+		UniqueSessionStudent: fmt.Sprintf("%d-%d", session.ID, studentID),
+	}
+
+	// 使用事务确保原子性
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 尝试创建记录，如果已存在则更新
+		if err := tx.Where("session_id = ? AND student_id = ?", session.ID, studentID).First(&record).Error; err != nil {
+			// 记录不存在，创建新记录
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := tx.Create(&record).Error; err != nil {
+					return errors.New("补签失败: " + err.Error())
+				}
+				return nil
+			}
+			return err
+		} else {
+			// 记录已存在，更新状态和签到时间
+			updates := map[string]interface{}{
+				"status":       status,
+				"checkin_time": time.Now(),
+			}
+			if err := tx.Model(&record).Updates(updates).Error; err != nil {
+				return errors.New("更新签到记录失败: " + err.Error())
+			}
+			return nil
+		}
+	})
+}
+
 // isUniqueConstraintError 判断是否为 MySQL 唯一约束错误
 func isUniqueConstraintError(err error) bool {
 	if err != nil {

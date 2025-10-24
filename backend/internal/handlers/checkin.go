@@ -176,6 +176,34 @@ func EndCheckinSession(c *gin.Context) {
 	response.Success(c, gin.H{"message": "签到会话已结束"})
 }
 
+// ManualCheckin 手动补签
+func ManualCheckin(c *gin.Context) {
+	sessionIDStr := c.Param("session_id")
+	sessionID, err := strconv.ParseUint(sessionIDStr, 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "无效的会话ID")
+		return
+	}
+
+	var req struct {
+		StudentID uint   `json:"student_id" binding:"required"`
+		Status    string `json:"status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "参数错误: "+err.Error())
+		return
+	}
+
+	err = services.ManualCheckin(uint(sessionID), req.StudentID, req.Status)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{"message": "补签成功"})
+}
+
 // ManualEndCheckinSession 手动结束签到会话
 func ManualEndCheckinSession(c *gin.Context) {
 	sessionIDStr := c.Param("session_id")
