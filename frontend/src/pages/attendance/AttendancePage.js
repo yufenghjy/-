@@ -377,7 +377,11 @@ const AttendancePage = () => {
               <Button 
                 type="primary" 
                 icon={<PlayCircleOutlined />} 
-                onClick={() => setIsStartModalVisible(true)}
+                onClick={() => {
+                  // 每次打开模态框时重新获取课程列表
+                  fetchCourses();
+                  setIsStartModalVisible(true);
+                }}
               >
                 发起签到
               </Button>
