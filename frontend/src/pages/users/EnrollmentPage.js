@@ -8,9 +8,10 @@ import {
   Form, 
   Select, 
   Space,
-  Popconfirm
+  Popconfirm,
+  Alert
 } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, RedoOutlined } from '@ant-design/icons';
 import EnrollmentService from '../../services/enrollmentService';
 import UserService from '../../services/userService';
 import CourseService from '../../services/courseService';
@@ -24,6 +25,7 @@ const EnrollmentPage = () => {
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
+  const [enrollmentError, setEnrollmentError] = useState(null); // 添加选课错误状态
 
   // 获取选课记录
   const fetchEnrollments = async () => {
@@ -82,6 +84,7 @@ const EnrollmentPage = () => {
 
   const showAddModal = () => {
     form.resetFields();
+    setEnrollmentError(null); // 清除之前的选课错误
     setIsModalVisible(true);
   };
 
@@ -89,16 +92,30 @@ const EnrollmentPage = () => {
     try {
       const values = await form.validateFields();
       // 添加选课记录
-      await EnrollmentService.createEnrollment({
-        studentId: values.studentId,
-        courseId: values.courseId
-      });
-      message.success('选课成功');
-      setIsModalVisible(false);
-      fetchEnrollments();
+      try {
+        await EnrollmentService.createEnrollment({
+          studentId: values.studentId,
+          courseId: values.courseId
+        });
+        message.success('选课成功');
+        setIsModalVisible(false);
+        setEnrollmentError(null); // 清除错误
+        fetchEnrollments();
+      } catch (error) {
+        // 检查是否是学生已经选修该课程的错误
+        if (error.message && error.message.includes('该学生已经选修了这门课程')) {
+          setEnrollmentError('该学生已经选修了这门课程');
+          message.error('该学生已经选修了这门课程');
+          return; // 不关闭模态框，让用户修改
+        }
+        message.error(error.message || '操作失败');
+        throw error; // 其他错误正常抛出
+      }
     } catch (error) {
-      console.error('选课失败:', error);
-      message.error(error.message || '操作失败');
+      // 只有非选课重复的错误才显示通用错误信息
+      if (!enrollmentError) {
+        message.error(error.message || '操作失败');
+      }
     }
   };
 
@@ -215,6 +232,15 @@ const EnrollmentPage = () => {
           form={form}
           layout="vertical"
         >
+          {enrollmentError && (
+            <Alert 
+              message={enrollmentError} 
+              type="error" 
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          
           <Form.Item
             name="studentId"
             label="学生"

@@ -11,9 +11,10 @@ import {
   Space,
   Tag,
   Select,
-  Popconfirm
+  Popconfirm,
+  Alert
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, RedoOutlined } from '@ant-design/icons';
 import CourseService from '../../services/courseService';
 import UserService from '../../services/userService';
 
@@ -39,6 +40,7 @@ const CoursesPage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [form] = Form.useForm();
+  const [courseCodeError, setCourseCodeError] = useState(null); // 添加课程代码错误状态
 
   // 获取课程列表
   const fetchCourses = async () => {
@@ -82,6 +84,7 @@ const CoursesPage = () => {
   const showAddModal = () => {
     setEditingCourse(null);
     form.resetFields();
+    setCourseCodeError(null); // 清除之前的课程代码错误
     setIsModalVisible(true);
   };
 
@@ -95,7 +98,17 @@ const CoursesPage = () => {
       credit: course.credit,
       semester: course.semester
     });
+    setCourseCodeError(null); // 清除之前的课程代码错误
     setIsModalVisible(true);
+  };
+
+  // 重新生成课程代码
+  const regenerateCourseCode = () => {
+    const name = form.getFieldValue('name');
+    const prefix = name ? name.substring(0, 3).toUpperCase() : 'COURSE';
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4位随机数
+    form.setFieldsValue({ courseCode: `${prefix}${randomNum}` });
+    setCourseCodeError(null); // 清除错误提示
   };
 
   const handleOk = async () => {
@@ -114,6 +127,7 @@ const CoursesPage = () => {
         
         await CourseService.updateCourse(editingCourse.id, courseData);
         message.success('课程信息更新成功');
+        setCourseCodeError(null); // 清除错误
       } else {
         // 添加课程
         // 准备后端期望的数据格式
@@ -125,16 +139,27 @@ const CoursesPage = () => {
           Semester: values.semester
         };
         
-        await CourseService.createCourse(courseData);
-        message.success('课程添加成功');
+        try {
+          await CourseService.createCourse(courseData);
+          message.success('课程添加成功');
+          setIsModalVisible(false);
+          setCourseCodeError(null); // 清除错误
+        } catch (error) {
+          // 检查是否是课程代码已存在的错误
+          if (error.message && error.message.includes('课程代码已存在')) {
+            setCourseCodeError('课程代码已存在，请修改课程代码或生成新代码');
+            message.error('课程代码已存在，请修改课程代码或生成新代码');
+            return; // 不关闭模态框，让用户修改
+          }
+          message.error(error.message || '操作失败');
+          throw error; // 其他错误正常抛出
+        }
       }
       setIsModalVisible(false);
       fetchCourses();
     } catch (error) {
-      // 处理课程代码重复的错误
-      if (error.message && error.message.includes('课程代码已存在')) {
-        message.error('课程代码已存在，请使用其他代码');
-      } else {
+      // 只有非课程代码重复的错误才显示通用错误信息
+      if (!courseCodeError) {
         message.error(error.message || '操作失败');
       }
     }
@@ -249,8 +274,34 @@ const CoursesPage = () => {
             label="课程编号"
             rules={[{ required: true, message: '请输入课程编号!' }]}
           >
-            <Input disabled={!!editingCourse} />
+            <Input 
+              disabled={!!editingCourse} 
+              addonAfter={
+                !editingCourse && (
+                  <Button 
+                    type="link" 
+                    icon={<RedoOutlined />} 
+                    onClick={regenerateCourseCode}
+                    style={{ padding: 0 }}
+                  />
+                )
+              }
+            />
           </Form.Item>
+          
+          {courseCodeError && (
+            <Alert 
+              message={courseCodeError} 
+              type="error" 
+              showIcon 
+              action={
+                <Button size="small" danger onClick={regenerateCourseCode}>
+                  生成新课程代码
+                </Button>
+              }
+              style={{ marginBottom: 16 }}
+            />
+          )}
           
           <Form.Item
             name="name"

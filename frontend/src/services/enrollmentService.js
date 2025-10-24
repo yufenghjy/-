@@ -2,24 +2,33 @@ import apiClient from './api';
 
 class EnrollmentService {
   // 获取所有选课记录
-  getEnrollments() {
-    return apiClient.get('/enrollments').then(response => {
+  async getEnrollments() {
+    try {
+      const response = await apiClient.get('/enrollments');
       return response;
-    });
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '获取选课记录失败');
+    }
   }
 
   // 创建选课记录
-  createEnrollment(data) {
-    return apiClient.post('/enrollments', data).then(response => {
+  async createEnrollment(data) {
+    try {
+      const response = await apiClient.post('/enrollments', data);
       return response;
-    });
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '创建选课记录失败');
+    }
   }
 
   // 删除选课记录
-  deleteEnrollment(id) {
-    return apiClient.delete(`/enrollments/${id}`).then(response => {
-      return response; // 或者对于删除操作，可以只返回一个成功标志
-    });
+  async deleteEnrollment(id) {
+    try {
+      const response = await apiClient.delete(`/enrollments/${id}`);
+      return response;
+    } catch (error) {
+      throw new Error(error.response?.data?.msg || '删除选课记录失败');
+    }
   }
 }
 
